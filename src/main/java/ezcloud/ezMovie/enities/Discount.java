@@ -25,4 +25,5 @@ public class Discount {
     private BigDecimal percentage;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private boolean isDeleted = false;
 }

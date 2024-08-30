@@ -29,4 +29,5 @@ public class BookedSeat {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private boolean isDeleted = false;
 }

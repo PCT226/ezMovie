@@ -34,4 +34,5 @@ public class Showtime {
     private LocalTime endTime;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private boolean isDeleted = false;
 }

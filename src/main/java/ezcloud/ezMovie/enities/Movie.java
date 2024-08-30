@@ -27,4 +27,5 @@ public class Movie {
     private Integer duration;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private boolean isDeleted = false;
 }

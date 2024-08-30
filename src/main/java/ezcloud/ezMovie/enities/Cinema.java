@@ -26,6 +26,7 @@ public class Cinema {
     private String city;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private boolean isDeleted = false;
     @OneToMany(mappedBy = "cinema")
     private Set<Screen> screens;
 

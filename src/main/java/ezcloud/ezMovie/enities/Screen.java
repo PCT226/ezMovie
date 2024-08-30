@@ -27,6 +27,7 @@ public class Screen {
     private Integer capacity;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private boolean isDeleted = false;
 
 
 }

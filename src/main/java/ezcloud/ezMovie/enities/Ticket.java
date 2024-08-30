@@ -33,4 +33,5 @@ public class Ticket {
     private String paymentStatus;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private boolean isDeleted = false;
 }

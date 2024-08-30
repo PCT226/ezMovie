@@ -29,4 +29,5 @@ public class Revenue {
     private LocalDate date;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private boolean isDeleted = false;
 }
