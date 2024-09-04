@@ -1,4 +1,4 @@
-package ezcloud.ezMovie.enities;
+package ezcloud.ezMovie.model.enities;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -6,33 +6,31 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.util.Set;
 
 @Entity
-@Table(name = "showtimes")
+@Table(name = "cinemas")
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class Showtime {
+public class Cinema {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @ManyToOne
-    @JoinColumn(name = "movie_id")
-    private Movie movie;
-
-    @ManyToOne
-    @JoinColumn(name = "screen_id")
-    private Screen screen;
-
-    private LocalDate date;
-    private LocalTime startTime;
-    private LocalTime endTime;
+    @Column(nullable = false)
+    private String name;
+    @Column(nullable = false)
+    private String location;
+    @Column(nullable = false)
+    private String city;
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private boolean isDeleted = false;
+    @OneToMany(mappedBy = "cinema")
+    private Set<Screen> screens;
+
 }
