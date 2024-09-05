@@ -1,6 +1,6 @@
 package ezcloud.ezMovie.repository;
 
-import ezcloud.ezMovie.enities.Showtime;
+import ezcloud.ezMovie.model.enities.Showtime;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

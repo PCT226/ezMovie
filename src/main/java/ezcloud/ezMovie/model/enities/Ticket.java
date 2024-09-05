@@ -1,4 +1,4 @@
-package ezcloud.ezMovie.enities;
+package ezcloud.ezMovie.model.enities;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -33,4 +33,5 @@ public class Ticket {
     private String paymentStatus;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private boolean isDeleted = false;
 }

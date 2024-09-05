@@ -1,6 +1,6 @@
 package ezcloud.ezMovie.repository;
 
-import ezcloud.ezMovie.enities.Ticket;
+import ezcloud.ezMovie.model.enities.Ticket;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

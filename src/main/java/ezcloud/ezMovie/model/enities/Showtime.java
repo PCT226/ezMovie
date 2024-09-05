@@ -1,4 +1,4 @@
-package ezcloud.ezMovie.enities;
+package ezcloud.ezMovie.model.enities;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -29,9 +29,14 @@ public class Showtime {
     @JoinColumn(name = "screen_id")
     private Screen screen;
 
+    @Column(nullable = false)
     private LocalDate date;
+    @Column(nullable = false)
     private LocalTime startTime;
+    @Column(nullable = false)
     private LocalTime endTime;
+    @Column(nullable = false,updatable = false)
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private boolean isDeleted = false;
 }
