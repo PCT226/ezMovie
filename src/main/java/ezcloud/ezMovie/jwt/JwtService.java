@@ -28,7 +28,7 @@ public class JwtService {
         claims.put("id", user.getUser().getId());
         claims.put("email", user.getUser().getEmail());
         claims.put("roles", user.getUser().getRole());
-        return createToken(claims, user.getUsername());
+        return createToken(claims, user.getEmail());
     }
 
     public Boolean validateToken(String token, UserDetails userDetails) {
@@ -36,11 +36,11 @@ public class JwtService {
         if (expirationDate.before(new Date())) {
             return false;
         }
-        String username = getUsernameFromToken(token);
+        String username = getEmailFromToken(token);
         return userDetails.getUsername().equals(username) && !expirationDate.before(new Date());
     }
 
-    public String getUsernameFromToken(String token) {
+    public String getEmailFromToken(String token) {
         return getClaimFromToken(token, Claims::getSubject);
     }
 
@@ -61,10 +61,10 @@ public class JwtService {
                 .getBody();
     }
 
-    private String createToken(Map<String, Object> claims, String username) {
+    private String createToken(Map<String, Object> claims, String email) {
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(username)
+                .setSubject(email)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION))
                 .signWith(SECRET_KEY, SignatureAlgorithm.HS256)

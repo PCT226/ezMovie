@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -51,13 +52,25 @@ public class AuthController {
                     content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Internal Server Error\" }")))
     })
     public ResponseEntity<JwtResponse> login(@RequestBody LoginRequest jwtRequest) {
-        authenticate(jwtRequest.getUsername(), jwtRequest.getPassword());
+        // Thay đổi validate bằng email
+        authenticateByEmail(jwtRequest.getEmail(), jwtRequest.getPassword());
 
-        UserDetails user =  userService.loadUserByUsername(jwtRequest.getUsername());
+        UserDetails user = userService.loadUserByEmail(jwtRequest.getEmail());
 
         String token = jwtService.generateToken((CustomUserDetail) user);
 
         return ResponseEntity.ok(new JwtResponse(token));
+    }
+
+    // Phương thức authenticateByEmail
+    private void authenticateByEmail(String email, String password) {
+        try {
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
+        } catch (DisabledException e) {
+            throw new RuntimeException("USER_DISABLED", e);
+        } catch (BadCredentialsException e) {
+            throw new RuntimeException("INVALID_CREDENTIALS", e);
+        }
     }
 
     @PostMapping("/register")
@@ -76,7 +89,9 @@ public class AuthController {
         if (userService.existsByEmail(request.getEmail())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email already exists");
         }
-
+        if (!isValidEmail(request.getEmail())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid email format");
+        }
         User user = new User();
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
@@ -89,7 +104,11 @@ public class AuthController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully");
     }
-
+    private boolean isValidEmail(String email) {
+        String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*$";
+        Pattern pattern = Pattern.compile(emailRegex);
+        return pattern.matcher(email).matches();
+    }
     private void authenticate(String username, String password) {
         try {
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));

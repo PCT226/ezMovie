@@ -16,12 +16,19 @@ public class UserService implements UserDetailsService {
     public UserService(UserRepository userRepository) {
     }
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-         User user= userRepository.findByUsername(username);
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+         User user= userRepository.findByEmail(email);
          if (user == null){
-             throw new UsernameNotFoundException(username);
+             throw new UsernameNotFoundException(email);
          }
          return new CustomUserDetail(user);
+    }
+    public UserDetails loadUserByEmail(String email) throws UsernameNotFoundException {
+        User user = userRepository.findByEmail(email);
+        if (user == null) {
+            throw new UsernameNotFoundException(email);
+        }
+        return new CustomUserDetail(user);
     }
 
     public User saveUser(User user){
