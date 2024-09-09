@@ -31,7 +31,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 @RestController
@@ -146,7 +145,7 @@ public class AuthController {
         }
 
         // Tạo mã xác thực quên mật khẩu
-        String resetCode = CodeGenerator.generateVerificationCode(6);;
+        String resetCode = CodeGenerator.generateVerificationCode(6);
         user.setResetPasswordCode(resetCode);
         userService.saveUser(user);
 
