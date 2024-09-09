@@ -1,5 +1,6 @@
 package ezcloud.ezMovie.jwt;
 
+import ezcloud.ezMovie.model.enities.CustomUserDetail;
 import ezcloud.ezMovie.service.UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -35,7 +36,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             String email = jwtService.getEmailFromToken(token);
             if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails user = userService.loadUserByEmail(email);
-                if (jwtService.validateToken(token, user)) {
+                if (jwtService.validateToken(token, (CustomUserDetail) user)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             user, null, user.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

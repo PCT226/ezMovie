@@ -18,17 +18,27 @@ public class UserService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
          User user= userRepository.findByEmail(email);
-         if (user == null){
+         if (user == null|| !user.isVerified()){
              throw new UsernameNotFoundException(email);
          }
          return new CustomUserDetail(user);
     }
     public UserDetails loadUserByEmail(String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(email);
-        if (user == null) {
+        if (user == null|| !user.isVerified()) {
             throw new UsernameNotFoundException(email);
         }
         return new CustomUserDetail(user);
+    }
+    public User findByVerificationCode(String verificationCode) {
+        return userRepository.findByVerificationCode(verificationCode);
+    }
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
+    public User findByResetPasswordCode(String resetCode) {
+        return userRepository.findByResetPasswordCode(resetCode);
     }
 
     public User saveUser(User user){

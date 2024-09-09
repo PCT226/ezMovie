@@ -28,10 +28,10 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
 
     private static final String[] WHITE_LIST_URL = {
-            "/api/v1/auth/login",
-            "/api/v1/auth/register",
+            "/api/v1/auth/**",
             "/swagger-ui/**",
-            "/v3/api-docs/**"
+            "/v3/api-docs/**",
+            "/auth/**"
     };
 
     @Bean
@@ -41,11 +41,6 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(WHITE_LIST_URL).permitAll() // Whitelisting some paths from authentication
                         .anyRequest().authenticated()) // All other requests must be authenticated
-
-//                .formLogin(Customizer.withDefaults()
-//                )
-//                .logout(Customizer.withDefaults()
-//                )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless session management
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class); // Registering our JwtAuthFilter

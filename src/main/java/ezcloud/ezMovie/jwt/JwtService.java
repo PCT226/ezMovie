@@ -1,7 +1,6 @@
 package ezcloud.ezMovie.jwt;
 
 import ezcloud.ezMovie.model.enities.CustomUserDetail;
-import ezcloud.ezMovie.model.enities.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -31,14 +30,22 @@ public class JwtService {
         return createToken(claims, user.getEmail());
     }
 
-    public Boolean validateToken(String token, UserDetails userDetails) {
+    public Boolean validateToken(String token, CustomUserDetail userDetails) {
+        // Lấy ngày hết hạn từ token
         Date expirationDate = getExpirationDateFromToken(token);
+
+        // Kiểm tra token đã hết hạn chưa
         if (expirationDate.before(new Date())) {
             return false;
         }
-        String username = getEmailFromToken(token);
-        return userDetails.getUsername().equals(username) && !expirationDate.before(new Date());
+
+        // Lấy email từ token
+        String email = getEmailFromToken(token);
+
+        // Kiểm tra email trong token có khớp với tên người dùng và token chưa hết hạn
+        return userDetails.getEmail().equals(email);
     }
+
 
     public String getEmailFromToken(String token) {
         return getClaimFromToken(token, Claims::getSubject);
