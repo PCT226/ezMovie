@@ -20,6 +20,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class UserService implements UserDetailsService {
@@ -54,22 +55,22 @@ public class UserService implements UserDetailsService {
         return users.stream().map(user -> mapper.map(user, UserInfo.class))
                 .collect(Collectors.toList());
     }
-    public UserInfo findById(int id){
+    public UserInfo findById(UUID id){
         User user=userRepository.findById(id).orElseThrow(()->new RuntimeException("User not found with id: " + id));
         return mapper.map(user, UserInfo.class);
     }
-    public void deleteUser(int id){
+    public void deleteUser(UUID id) {
         userRepository.deleteById(id);
-    public UserService(UserRepository userRepository) {
     }
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String email){
          User user= userRepository.findByEmail(email);
          if (user == null|| !user.isVerified()){
              throw new UsernameNotFoundException(email);
          }
          return new CustomUserDetail(user);
     }
+
     public UserDetails loadUserByEmail(String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(email);
         if (user == null|| !user.isVerified()) {
@@ -89,7 +90,7 @@ public class UserService implements UserDetailsService {
     }
 
 
-    }
+
     public boolean existsByUsername(String username) {
         return userRepository.existsByUsername(username);
     }

@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping(value = "user")
@@ -22,7 +23,7 @@ public class UserController {
         return ResponseEntity.ok(userService.getAll());
     }
     @GetMapping(value = "/{id}")
-    public ResponseEntity<UserInfo> getById(@PathVariable int id){
+    public ResponseEntity<UserInfo> getById(@PathVariable UUID id){
         return ResponseEntity.ok(userService.findById(id));
     }
     @PutMapping("/update")
@@ -39,7 +40,7 @@ public class UserController {
         }
     }
     @DeleteMapping(value = "/delete/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable int id){
+    public ResponseEntity<?> deleteUser(@PathVariable UUID id){
         userService.deleteUser(id);
         return ResponseEntity.ok("Xóa thành công");
     }
