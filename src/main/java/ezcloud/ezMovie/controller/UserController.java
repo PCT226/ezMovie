@@ -26,6 +26,7 @@ public class UserController {
     public ResponseEntity<UserInfo> getById(@PathVariable UUID id){
         return ResponseEntity.ok(userService.findById(id));
     }
+
     @PutMapping("/update")
     public ResponseEntity<?> updateUser( @RequestBody UserInfo userInfo) {
         try {
