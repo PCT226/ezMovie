@@ -21,7 +21,8 @@ public class JwtService {
     // Sử dụng phương thức để tạo khóa bí mật an toàn
     private final SecretKey SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 
-    private final long EXPIRATION = 1000000000000L;
+    private final long EXPIRATION = 100000000000L;
+
 
     public String generateToken(CustomUserDetail user) {
         Map<String, Object> claims = new HashMap<>();
@@ -32,13 +33,11 @@ public class JwtService {
     }
 
     public Boolean validateToken(String token, UserDetails userDetails) {
-        Date expirationDate = getExpirationDateFromToken(token);
-        if (expirationDate.before(new Date())) {
-            return false;
-        }
         String username = getUsernameFromToken(token);
-        return userDetails.getUsername().equals(username) && !expirationDate.before(new Date());
+        Date expirationDate = getExpirationDateFromToken(token);
+        return (userDetails.getUsername().equals(username) && !expirationDate.before(new Date()));
     }
+
 
     public String getUsernameFromToken(String token) {
         return getClaimFromToken(token, Claims::getSubject);
