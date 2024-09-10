@@ -29,17 +29,27 @@ public class JwtService {
         claims.put("id", user.getUser().getId());
         claims.put("email", user.getUser().getEmail());
         claims.put("roles", user.getUser().getRole());
-        return createToken(claims, user.getUsername());
+        return createToken(claims, user.getEmail());
     }
 
-    public Boolean validateToken(String token, UserDetails userDetails) {
-        String username = getUsernameFromToken(token);
+    public Boolean validateToken(String token, CustomUserDetail userDetails) {
+        // Lấy ngày hết hạn từ token
         Date expirationDate = getExpirationDateFromToken(token);
-        return (userDetails.getUsername().equals(username) && !expirationDate.before(new Date()));
+
+        // Kiểm tra token đã hết hạn chưa
+        if (expirationDate.before(new Date())) {
+            return false;
+        }
+
+        // Lấy email từ token
+        String email = getEmailFromToken(token);
+
+        // Kiểm tra email trong token có khớp với tên người dùng và token chưa hết hạn
+        return userDetails.getEmail().equals(email);
     }
 
 
-    public String getUsernameFromToken(String token) {
+    public String getEmailFromToken(String token) {
         return getClaimFromToken(token, Claims::getSubject);
     }
 
@@ -60,10 +70,10 @@ public class JwtService {
                 .getBody();
     }
 
-    private String createToken(Map<String, Object> claims, String username) {
+    private String createToken(Map<String, Object> claims, String email) {
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(username)
+                .setSubject(email)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION))
                 .signWith(SECRET_KEY, SignatureAlgorithm.HS256)

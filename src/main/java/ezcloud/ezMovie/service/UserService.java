@@ -1,5 +1,9 @@
 package ezcloud.ezMovie.service;
 
+import ezcloud.ezMovie.model.enities.CustomUserDetail;
+import ezcloud.ezMovie.model.enities.User;
+import ezcloud.ezMovie.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import ezcloud.ezMovie.exception.EmailAlreadyExistsException;
 import ezcloud.ezMovie.model.dto.UserInfo;
 import ezcloud.ezMovie.model.enities.CustomUserDetail;
@@ -25,14 +29,7 @@ public class UserService implements UserDetailsService {
     private ModelMapper mapper;
     public UserService(UserRepository userRepository) {
     }
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-         User user= userRepository.findByUsername(username);
-         if (user == null){
-             throw new UsernameNotFoundException(username);
-         }
-         return new CustomUserDetail(user);
-    }
+
     public User saveUser(User user){
         return userRepository.save(user);
     }
@@ -63,6 +60,35 @@ public class UserService implements UserDetailsService {
     }
     public void deleteUser(int id){
         userRepository.deleteById(id);
+    public UserService(UserRepository userRepository) {
+    }
+    @Override
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+         User user= userRepository.findByEmail(email);
+         if (user == null|| !user.isVerified()){
+             throw new UsernameNotFoundException(email);
+         }
+         return new CustomUserDetail(user);
+    }
+    public UserDetails loadUserByEmail(String email) throws UsernameNotFoundException {
+        User user = userRepository.findByEmail(email);
+        if (user == null|| !user.isVerified()) {
+            throw new UsernameNotFoundException(email);
+        }
+        return new CustomUserDetail(user);
+    }
+    public User findByVerificationCode(String verificationCode) {
+        return userRepository.findByVerificationCode(verificationCode);
+    }
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
+    public User findByResetPasswordCode(String resetCode) {
+        return userRepository.findByResetPasswordCode(resetCode);
+    }
+
+
     }
     public boolean existsByUsername(String username) {
         return userRepository.existsByUsername(username);

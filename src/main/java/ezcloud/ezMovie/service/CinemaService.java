@@ -1,9 +1,11 @@
 package ezcloud.ezMovie.service;
 
+
 import ezcloud.ezMovie.model.dto.CinemaDto;
 import ezcloud.ezMovie.model.enities.Cinema;
 import ezcloud.ezMovie.repository.CinemaRepository;
 import org.modelmapper.ModelMapper;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -11,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
 
 @Service
 public class CinemaService {
@@ -41,6 +44,7 @@ public class CinemaService {
         existingCinema.setLocation(cinemaDto.getLocation());
         existingCinema.setUpdatedAt(LocalDateTime.now());
         return cinemaRepository.save(existingCinema);
+
     }
     public void deleteCinema(int id){
         Optional<Cinema> del = cinemaRepository.findById(id);
