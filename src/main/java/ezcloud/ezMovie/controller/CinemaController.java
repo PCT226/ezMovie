@@ -44,9 +44,8 @@ public class CinemaController {
             @ApiResponse(responseCode = "400", description = "Yêu cầu không hợp lệ. Dữ liệu rạp chiếu phim không hợp lệ hoặc bị thiếu."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi tạo rạp chiếu phim.")
     })
-    public ResponseEntity<Cinema> create(@RequestBody CinemaDto cinemaDto){
-        Cinema c1= cinemaService.createCinema(cinemaDto);
-        return ResponseEntity.ok( c1);
+    public ResponseEntity<CinemaDto> create(@RequestBody CinemaDto cinemaDto){
+        return ResponseEntity.ok(cinemaService.createCinema(cinemaDto));
     }
 
     @DeleteMapping("/{id}")

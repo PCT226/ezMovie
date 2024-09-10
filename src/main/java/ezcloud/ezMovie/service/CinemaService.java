@@ -7,6 +7,7 @@ import ezcloud.ezMovie.repository.CinemaRepository;
 import org.modelmapper.ModelMapper;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -28,12 +29,13 @@ public class CinemaService {
                 .collect(Collectors.toList());
     }
 
-    public Cinema createCinema(CinemaDto cinemaDto){
+    public CinemaDto createCinema(CinemaDto cinemaDto){
         Cinema cinema=mapper.map(cinemaDto,Cinema.class);
         cinema.setCreatedAt(LocalDateTime.now());
         cinema.setUpdatedAt(LocalDateTime.now());
         cinema.setDeleted(false);
-        return cinemaRepository.save(cinema);
+        cinemaRepository.save(cinema);
+        return mapper.map(cinema,CinemaDto.class);
 
     }
     public Cinema updateCinema(CinemaDto cinemaDto){
@@ -53,7 +55,7 @@ public class CinemaService {
             cinema.setDeleted(true);
             cinemaRepository.save(cinema);
         }else {
-            throw new RuntimeException("User not found");
+            throw new UsernameNotFoundException("User not found");
         }
     }
 }

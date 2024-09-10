@@ -1,9 +1,13 @@
 package ezcloud.ezMovie.controller;
 
 
+import ezcloud.ezMovie.exception.EmailAlreadyExistsException;
+import ezcloud.ezMovie.exception.UsernameAlreadyExistException;
+import ezcloud.ezMovie.model.dto.UserInfo;
 import ezcloud.ezMovie.model.payload.JwtResponse;
 import ezcloud.ezMovie.model.payload.LoginRequest;
 import ezcloud.ezMovie.model.payload.RegisterRequest;
+import ezcloud.ezMovie.service.AuthService;
 import ezcloud.ezMovie.service.UserService;
 import lombok.RequiredArgsConstructor;
 import ezcloud.ezMovie.jwt.CodeGenerator;
@@ -33,6 +37,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -56,7 +61,7 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
-    private final UserService userService;
+    private final AuthService authService;
     private final PasswordEncoder passwordEncoder;
 
 
@@ -74,26 +79,7 @@ public class AuthController {
                     content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Internal Server Error\" }")))
     })
     public ResponseEntity<JwtResponse> login(@RequestBody LoginRequest jwtRequest) {
-        // Thay đổi validate bằng email
-        authenticateByEmail(jwtRequest.getEmail(), jwtRequest.getPassword());
-
-        UserDetails user = userService.loadUserByEmail(jwtRequest.getEmail());
-
-        String token = jwtService.generateToken((CustomUserDetail) user);
-
-        return ResponseEntity.ok(new JwtResponse(token));
-    }
-
-
-    // Phương thức authenticateByEmail
-    private void authenticateByEmail(String email, String password) {
-        try {
-            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
-        } catch (DisabledException e) {
-            throw new RuntimeException("USER_DISABLED", e);
-        } catch (BadCredentialsException e) {
-            throw new RuntimeException("INVALID_CREDENTIALS", e);
-        }
+        return ResponseEntity.ok(authService.login(jwtRequest));
     }
 
     @PostMapping("/register")
@@ -105,50 +91,27 @@ public class AuthController {
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ.",
                     content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Internal Server Error\" }")))
     })
-    public ResponseEntity<String> register(@RequestBody RegisterRequest request) throws MessagingException {
-        if (userService.existsByUsername(request.getUsername())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Username already exists");
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request){
+        try {
+            authService.register(request);
+        } catch (UsernameAlreadyExistException ex) {
+            return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_ACCEPTABLE);
+        } catch (EmailAlreadyExistsException ex) {
+            return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_ACCEPTABLE);
+        } catch (Exception ex) {
+            return new ResponseEntity<>("An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        if (userService.existsByEmail(request.getEmail())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email already exists");
-        }
-
-        if (!isValidEmail(request.getEmail())) {
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body("Invalid email format");
-        }
-
-        User user = new User();
-        user.setUsername(request.getUsername());
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword())); // Use request.getPassword()
-        user.setRole("USER");
-        user.setPhoneNumber(request.getPhoneNumber());
-        user.setCreatedAt(LocalDateTime.now());
-        user.setUpdatedAt(LocalDateTime.now());
-
-        String verificationCode = CodeGenerator.generateVerificationCode(6);
-        user.setVerificationCode(verificationCode);
-        String body = "<d>Your verification code is: </d> <h1  style=\\\"letter-spacing: 5px;\\> <strong>" + verificationCode + "</strong></h1>";
-
-        emailService.sendEmail(user.getEmail(), "Verification Code", body);
-
-        userService.saveUser(user);
-
         return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully");
     }
 
 
     @PostMapping("/verify-register")
     public ResponseEntity<String> verifyAccountRegister(@RequestParam("code") String code) {
-        User user = userService.findByVerificationCode(code);
-
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid verification code");
+        try {
+            authService.verifyAccountRegister(code);
+        }catch (UsernameNotFoundException ex){
+            return new ResponseEntity<>(ex.getMessage(),HttpStatus.BAD_REQUEST);
         }
-
-        user.setVerified(true);
-        user.setVerificationCode(null);
-        userService.saveUser(user);
 
         return ResponseEntity.ok("Account verified successfully");
     }
@@ -161,20 +124,11 @@ public class AuthController {
                     content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Email not found\" }")))
     })
     public ResponseEntity<String> forgotPassword(@RequestParam("email") String email) throws MessagingException {
-        User user = userService.findByEmail(email);
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Email not found");
+        try{
+            authService.forgotPassword(email);
+        }catch (UsernameNotFoundException ex){
+            return new ResponseEntity<>(ex.getMessage(),HttpStatus.NOT_FOUND);
         }
-
-        // Tạo mã xác thực quên mật khẩu
-        String resetCode = CodeGenerator.generateVerificationCode(6);
-        user.setResetPasswordCode(resetCode);
-        userService.saveUser(user);
-
-        // Gửi email mã xác thực
-        String body = "<d>Your password Reset Code is: </d> <h1  style=\\\"letter-spacing: 5px;\\> <strong>" + resetCode + "</strong></h1>";
-        emailService.sendEmail(user.getEmail(), "Password Reset Code", body);
-
         return ResponseEntity.ok("Password reset code sent successfully");
     }
 
@@ -186,16 +140,11 @@ public class AuthController {
                     content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Invalid or expired reset code\" }")))
     })
     public ResponseEntity<String> resetPassword(@RequestParam("resetCode") String resetCode, @RequestParam("newPassword") String newPassword) {
-        User user = userService.findByResetPasswordCode(resetCode);
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid or expired reset code");
-        }
-
-        // Đặt lại mật khẩu mới
-        user.setPassword(passwordEncoder.encode(newPassword));
-        user.setResetPasswordCode(null);
-        userService.saveUser(user);
-
+       try{
+           authService.resetPassword(resetCode,newPassword);
+       }catch (UsernameNotFoundException ex){
+           return new ResponseEntity<>(ex.getMessage(),HttpStatus.NOT_FOUND);
+       }
         return ResponseEntity.ok("Password reset successfully");
     }
 
@@ -209,34 +158,14 @@ public class AuthController {
                     content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Internal Server Error\" }")))
     })
     public ResponseEntity<String> changePassword(@RequestBody ChangePasswordRequest request, HttpServletRequest httpRequest) {
-        String token = httpRequest.getHeader("Authorization");
-        if (token != null && token.startsWith("Bearer ")) {
-            token = token.substring(7);
+        try {
+            authService.changePassword(request,httpRequest);
+        }catch (EmailAlreadyExistsException ex){
+            return new ResponseEntity<>(ex.getMessage(),HttpStatus.NOT_FOUND);
+        }catch (RuntimeException ex){
+            return new ResponseEntity<>(ex.getMessage(),HttpStatus.BAD_REQUEST);
         }
-
-        String email = jwtService.getEmailFromToken(token);
-
-        User user = userService.findByEmail(email);
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid email");
-        }
-
-        // Kiểm tra mật khẩu cũ
-        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Incorrect current password");
-        }
-
-        // Cập nhật mật khẩu mới
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        userService.saveUser(user);
-
         return ResponseEntity.ok("Password changed successfully");
     }
 
-
-    private boolean isValidEmail(String email) {
-        String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*$";
-        Pattern pattern = Pattern.compile(emailRegex);
-        return pattern.matcher(email).matches();
-    }
 }

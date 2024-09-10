@@ -1,7 +1,10 @@
 package ezcloud.ezMovie.service;
 
+import ezcloud.ezMovie.jwt.JwtService;
 import ezcloud.ezMovie.model.enities.CustomUserDetail;
 import ezcloud.ezMovie.model.enities.User;
+import ezcloud.ezMovie.model.payload.JwtResponse;
+import ezcloud.ezMovie.model.payload.LoginRequest;
 import ezcloud.ezMovie.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import ezcloud.ezMovie.exception.EmailAlreadyExistsException;
@@ -13,6 +16,10 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.config.ConfigDataResourceNotFoundException;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -62,6 +69,8 @@ public class UserService implements UserDetailsService {
     public void deleteUser(UUID id) {
         userRepository.deleteById(id);
     }
+
+
     @Override
     public UserDetails loadUserByUsername(String email){
          User user= userRepository.findByEmail(email);
