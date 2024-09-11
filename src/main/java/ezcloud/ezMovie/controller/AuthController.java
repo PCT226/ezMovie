@@ -73,7 +73,7 @@ public class AuthController {
     @Operation(summary = "User login", description = "Authenticate user and return JWT token")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Đăng nhập thành công, trả về JWT token."),
-            @ApiResponse(responseCode = "401", description = "Xác thực không thành công.",
+            @ApiResponse(responseCode = "403", description = "Xác thực không thành công.",
                     content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Unauthorized\" }"))),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ.",
                     content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Internal Server Error\" }")))

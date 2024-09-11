@@ -4,8 +4,10 @@ import ezcloud.ezMovie.exception.MovieNotFound;
 import ezcloud.ezMovie.model.dto.MovieInfo;
 import ezcloud.ezMovie.model.enities.Movie;
 import ezcloud.ezMovie.repository.MovieRepository;
+import ezcloud.ezMovie.specification.MovieSpecification;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -27,6 +29,16 @@ public class MovieService {
     public MovieInfo findById(int id){
         Movie movie= movieRepository.findById(id).orElseThrow(()-> new MovieNotFound("Not founf Movie with ID: "+id));
         return mapper.map(movie, MovieInfo.class);
+    }
+
+    public List<MovieInfo> searchMovies(String title, String genre, String actor) {
+        Specification<Movie> spec = MovieSpecification.searchMovies(title, genre, actor)
+                .and((root, query, criteriaBuilder) ->
+                        criteriaBuilder.equal(root.get("isDeleted"), false)); // Thêm điều kiện isDeleted = false
+        List<Movie> movies= movieRepository.findAll(spec);
+
+        return movies.stream().map(movie -> mapper.map(movie,MovieInfo.class))
+                .collect(Collectors.toList());
     }
     public MovieInfo createMovie(MovieInfo movieInfo){
         Movie movie=new Movie();

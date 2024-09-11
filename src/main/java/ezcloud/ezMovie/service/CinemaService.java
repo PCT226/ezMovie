@@ -28,6 +28,10 @@ public class CinemaService {
         return cinemas.stream().map(cinema -> mapper.map(cinema,CinemaDto.class))
                 .collect(Collectors.toList());
     }
+    public CinemaDto getById(int id){
+        Cinema cinema=cinemaRepository.findById(id).orElseThrow(()-> new RuntimeException("Not found Cinema with ID:"+id));
+        return mapper.map(cinema,CinemaDto.class);
+    }
 
     public CinemaDto createCinema(CinemaDto cinemaDto){
         Cinema cinema=mapper.map(cinemaDto,Cinema.class);
@@ -38,14 +42,16 @@ public class CinemaService {
         return mapper.map(cinema,CinemaDto.class);
 
     }
-    public Cinema updateCinema(CinemaDto cinemaDto){
+    public CinemaDto updateCinema(CinemaDto cinemaDto){
         Cinema existingCinema = cinemaRepository.findById(cinemaDto.getId())
                 .orElseThrow(() -> new RuntimeException("Cinema not found with id: " + cinemaDto.getId()));
-        existingCinema.setName(cinemaDto.getName());
-        existingCinema.setCity(cinemaDto.getCity());
-        existingCinema.setLocation(cinemaDto.getLocation());
+        mapper.map(cinemaDto,Cinema.class);
+//        existingCinema.setName(cinemaDto.getName());
+//        existingCinema.setCity(cinemaDto.getCity());
+//        existingCinema.setLocation(cinemaDto.getLocation());
         existingCinema.setUpdatedAt(LocalDateTime.now());
-        return cinemaRepository.save(existingCinema);
+        Cinema updatedCinema= cinemaRepository.save(existingCinema);
+        return mapper.map(updatedCinema, CinemaDto.class);
 
     }
     public void deleteCinema(int id){

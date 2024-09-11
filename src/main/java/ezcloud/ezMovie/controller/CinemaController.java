@@ -37,6 +37,16 @@ public class CinemaController {
         return ResponseEntity.ok(cinemaService.getAll());
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "Get cinemas info", description = "Cinema Info")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Chi tiết rạp chiếu phim được lấy thành công."),
+            @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi lấy rạp chiếu phim.")
+    })
+    public ResponseEntity<CinemaDto> getById(@PathVariable int id){
+        return ResponseEntity.ok(cinemaService.getById(id));
+    }
+
     @PostMapping("/")
     @Operation(summary = "Create a new cinema", description = "Add a new cinema to the system")
     @ApiResponses(value = {
@@ -46,6 +56,17 @@ public class CinemaController {
     })
     public ResponseEntity<CinemaDto> create(@RequestBody CinemaDto cinemaDto){
         return ResponseEntity.ok(cinemaService.createCinema(cinemaDto));
+    }
+
+    @PutMapping("/")
+    @Operation(summary = "Update cinema info", description = "Update Cinema Info")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Rạp chiếu phim được cập nhập thành công."),
+            @ApiResponse(responseCode = "400", description = "Yêu cầu không hợp lệ. Dữ liệu rạp chiếu phim không hợp lệ hoặc bị thiếu."),
+            @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi tạo rạp chiếu phim.")
+    })
+    public ResponseEntity<CinemaDto> update(@RequestBody CinemaDto cinemaDto){
+        return ResponseEntity.ok(cinemaService.updateCinema(cinemaDto));
     }
 
     @DeleteMapping("/{id}")
