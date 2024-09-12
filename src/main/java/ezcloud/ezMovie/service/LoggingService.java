@@ -1,4 +1,4 @@
-package ezcloud.ezMovie.log;
+package ezcloud.ezMovie.service;
 
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
@@ -12,16 +12,18 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
-public class ElasticsearchLogger {
+public class LoggingService {
 
     private final RestHighLevelClient restHighLevelClient;
 
     @Autowired
-    public ElasticsearchLogger(RestHighLevelClient restHighLevelClient) {
+    public LoggingService(RestHighLevelClient restHighLevelClient) {
         this.restHighLevelClient = restHighLevelClient;
     }
 
-    public void logToElasticsearch(String method, String url, String clientIp, String requestHeaders, String requestBody, int statusCode, String responseHeaders, String responseBody, String timestamp) {
+    public void logToElasticsearch(String method, String url, String clientIp,
+                                   String requestHeaders, String requestBody, int statusCode,
+                                   String responseHeaders, String responseBody, String timestamp) {
         Map<String, Object> log = new HashMap<>();
         log.put("method", method);
         log.put("url", url);

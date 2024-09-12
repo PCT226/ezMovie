@@ -46,9 +46,9 @@ public class CinemaService {
         Cinema existingCinema = cinemaRepository.findById(cinemaDto.getId())
                 .orElseThrow(() -> new RuntimeException("Cinema not found with id: " + cinemaDto.getId()));
         mapper.map(cinemaDto,Cinema.class);
-//        existingCinema.setName(cinemaDto.getName());
-//        existingCinema.setCity(cinemaDto.getCity());
-//        existingCinema.setLocation(cinemaDto.getLocation());
+        existingCinema.setName(cinemaDto.getName());
+        existingCinema.setCity(cinemaDto.getCity());
+        existingCinema.setLocation(cinemaDto.getLocation());
         existingCinema.setUpdatedAt(LocalDateTime.now());
         Cinema updatedCinema= cinemaRepository.save(existingCinema);
         return mapper.map(updatedCinema, CinemaDto.class);

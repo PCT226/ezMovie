@@ -1,15 +1,14 @@
 package ezcloud.ezMovie.log;
 
-import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.WriteListener;
 
 import java.io.IOException;
 import java.io.OutputStream;
 
-public class CachedBodyServletOutputStream extends ServletOutputStream {
+public class ServletOutputStream extends jakarta.servlet.ServletOutputStream {
     private final OutputStream outputStream;
 
-    public CachedBodyServletOutputStream(OutputStream outputStream) {
+    public ServletOutputStream(OutputStream outputStream) {
         this.outputStream = outputStream;
     }
 

@@ -1,5 +1,6 @@
 package ezcloud.ezMovie.log;
 
+import ezcloud.ezMovie.service.LoggingService;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.FilterConfig;
@@ -7,8 +8,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.annotation.WebFilter;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -24,23 +23,23 @@ import java.util.stream.Collectors;
 @WebFilter("/*")
 public class LoggingFilter implements Filter {
 
-    private final ElasticsearchLogger elasticsearchLogger;
+    private final LoggingService loggingService;
+
+    List<String> excludedApis = Arrays.asList("/api/health", "/swagger-ui", "/v3/api-docs");
+
 
     @Autowired
-    public LoggingFilter(ElasticsearchLogger elasticsearchLogger) {
-        this.elasticsearchLogger = elasticsearchLogger;
+    public LoggingFilter(LoggingService loggingService) {
+        this.loggingService = loggingService;
     }
 
     @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
+    public void init(FilterConfig filterConfig) {
     }
 
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        HttpServletRequest httpRequest = (HttpServletRequest) request;
-        HttpServletResponse httpResponse = (HttpServletResponse) response;
-
-        // Danh sách các API muốn bỏ qua
-        List<String> excludedApis = Arrays.asList("/api/health", "/swagger-ui", "/v3/api-docs");
+        jakarta.servlet.http.HttpServletRequest httpRequest = (jakarta.servlet.http.HttpServletRequest) request;
+        jakarta.servlet.http.HttpServletResponse httpResponse = (jakarta.servlet.http.HttpServletResponse) response;
 
         String requestURI = httpRequest.getRequestURI();
 
@@ -51,8 +50,8 @@ public class LoggingFilter implements Filter {
             return;
         }
 
-        CachedBodyHttpServletRequest wrappedRequest = new CachedBodyHttpServletRequest(httpRequest);
-        CachedBodyHttpServletResponse wrappedResponse = new CachedBodyHttpServletResponse(httpResponse);
+        HttpServletRequest wrappedRequest = new HttpServletRequest(httpRequest);
+        HttpServletResponse wrappedResponse = new HttpServletResponse(httpResponse);
 
         chain.doFilter(wrappedRequest, wrappedResponse);
 
@@ -63,7 +62,9 @@ public class LoggingFilter implements Filter {
         String requestHeaders = Collections.list(wrappedRequest.getHeaderNames()).stream()
                 .map(header -> header + ": " + wrappedRequest.getHeader(header))
                 .collect(Collectors.joining(", "));
-        String requestBody = wrappedRequest.getBody();
+
+        String requestBody = url.contains("/api/v1/auth") ? "authen" : wrappedRequest.getBody();
+
 
         // Lấy thông tin từ response
         int statusCode = wrappedResponse.getStatus();
@@ -72,11 +73,9 @@ public class LoggingFilter implements Filter {
                 .collect(Collectors.joining(", "));
         String responseBody = wrappedResponse.getBody();
 
-        // Lấy thời gian hiện tại (timestamp)
         String timestamp = Instant.now().toString();
 
-        // Ghi log vào Elasticsearch với các thông tin chi tiết
-        elasticsearchLogger.logToElasticsearch(
+        loggingService.logToElasticsearch(
                 method, url, clientIp, requestHeaders, requestBody, statusCode, responseHeaders, responseBody, timestamp
         );
 

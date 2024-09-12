@@ -1,28 +1,26 @@
 package ezcloud.ezMovie.log;
 
-import jakarta.servlet.ServletOutputStream;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletResponseWrapper;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 
-public class CachedBodyHttpServletResponse extends HttpServletResponseWrapper {
+public class HttpServletResponse extends HttpServletResponseWrapper {
     private ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    private ServletOutputStream servletOutputStream;
+    private jakarta.servlet.ServletOutputStream servletOutputStream;
 
-    public CachedBodyHttpServletResponse(HttpServletResponse response) throws IOException {
+    public HttpServletResponse(jakarta.servlet.http.HttpServletResponse response) {
         super(response);
-        this.servletOutputStream = new CachedBodyServletOutputStream(byteArrayOutputStream);
+        this.servletOutputStream = new ServletOutputStream(byteArrayOutputStream);
     }
 
     @Override
-    public ServletOutputStream getOutputStream() {
+    public jakarta.servlet.ServletOutputStream getOutputStream() {
         return servletOutputStream;
     }
 
     @Override
-    public PrintWriter getWriter() throws IOException {
+    public PrintWriter getWriter() {
         return new PrintWriter(new OutputStreamWriter(byteArrayOutputStream, StandardCharsets.UTF_8), true);
     }
 

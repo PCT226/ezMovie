@@ -1,15 +1,14 @@
 package ezcloud.ezMovie.log;
 
 import jakarta.servlet.ReadListener;
-import jakarta.servlet.ServletInputStream;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
-public class CachedBodyServletInputStream extends ServletInputStream {
+public class ServletInputStream extends jakarta.servlet.ServletInputStream {
     private final ByteArrayInputStream byteArrayInputStream;
 
-    public CachedBodyServletInputStream(byte[] body) {
+    public ServletInputStream(byte[] body) {
         this.byteArrayInputStream = new ByteArrayInputStream(body);
     }
 
@@ -28,7 +27,7 @@ public class CachedBodyServletInputStream extends ServletInputStream {
     }
 
     @Override
-    public int read() throws IOException {
+    public int read() {
         return byteArrayInputStream.read();
     }
 }
