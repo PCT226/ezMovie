@@ -37,7 +37,7 @@ public class MovieController {
             @ApiResponse(responseCode = "200", description = "Thông tin phim được lấy thành công."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi lấy thông tin phim.")
     })
-    public ResponseEntity<MovieInfo> getById(@PathVariable int id){
+    public ResponseEntity<?> getById(@PathVariable int id){
         return ResponseEntity.ok(movieService.findById(id));
     }
 

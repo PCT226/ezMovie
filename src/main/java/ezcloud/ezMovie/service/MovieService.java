@@ -27,7 +27,8 @@ public class MovieService {
                 .collect(Collectors.toList());
     }
     public MovieInfo findById(int id){
-        Movie movie= movieRepository.findById(id).orElseThrow(()-> new MovieNotFound("Not founf Movie with ID: "+id));
+        Movie movie= movieRepository.findById(id)
+                .orElseThrow(()-> new MovieNotFound("Not found Movie with ID: "+id));
         return mapper.map(movie, MovieInfo.class);
     }
 
