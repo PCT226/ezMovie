@@ -1,5 +1,8 @@
 package ezcloud.ezMovie.service;
 
+import ezcloud.ezMovie.model.dto.CinemaDto;
+import ezcloud.ezMovie.model.dto.MovieInfo;
+import ezcloud.ezMovie.model.dto.ScreenDto;
 import ezcloud.ezMovie.model.dto.ShowtimeDto;
 import ezcloud.ezMovie.model.enities.Cinema;
 import ezcloud.ezMovie.model.enities.Movie;
@@ -28,6 +31,8 @@ public class ShowtimeService {
     @Autowired
     private MovieRepository movieRepository;
     @Autowired
+    private MovieService movieService;
+    @Autowired
     private ScreenRepository screenRepository;
     @Autowired
     private ModelMapper mapper;
@@ -42,8 +47,32 @@ public class ShowtimeService {
         List<Showtime> futureShowtimes = showtimeRepository.findByDateAfterAndIsDeletedFalse(nowDate);
         // Kết hợp cả hai danh sách
         todayUpcoming.addAll(futureShowtimes);
-        return todayUpcoming.stream().map(showtime -> mapper.map(showtime,ShowtimeDto.class)).collect(Collectors.toList());
+
+        return todayUpcoming.stream().map(showtime -> {
+            ShowtimeDto showtimeDto=mapper.map(showtime,ShowtimeDto.class);
+            if (showtime.getMovie() != null) {
+                MovieInfo movieInfo = mapper.map(showtime.getMovie(), MovieInfo.class);
+                showtimeDto.setMovieInfo(movieInfo);
+            } else {
+                showtimeDto.setMovieInfo(null);
+            }
+            if (showtime.getScreen() != null) {
+                ScreenDto screenDto = mapper.map(showtime.getScreen(), ScreenDto.class);
+                if (showtime.getScreen().getCinema() != null) {
+                    CinemaDto cinemaDTO = mapper.map(showtime.getScreen().getCinema(), CinemaDto.class);
+                    screenDto.setCinemaDto(cinemaDTO);
+                } else {
+                    screenDto.setCinemaDto(null);
+                }
+                showtimeDto.setScreen(screenDto);
+            } else {
+                showtimeDto.setScreen(null);
+            }
+            return showtimeDto;
+
+        }).collect(Collectors.toList());
     }
+
     public List<ShowtimeDto> getUpcomingShowtimesForMovie(Integer movieId) {
         LocalDate nowDate = LocalDate.now();
         LocalTime nowTime = LocalTime.now();
@@ -57,12 +86,36 @@ public class ShowtimeService {
         // Kết hợp cả hai danh sách
         todayUpcoming.addAll(futureShowtimes);
 
-        return todayUpcoming.stream().map(showtime -> mapper.map(showtime,ShowtimeDto.class)).collect(Collectors.toList());
+        return todayUpcoming.stream().map(showtime -> {
+            ShowtimeDto showtimeDto=mapper.map(showtime,ShowtimeDto.class);
+            if (showtime.getMovie() != null) {
+                MovieInfo movieInfo = mapper.map(showtime.getMovie(), MovieInfo.class);
+                showtimeDto.setMovieInfo(movieInfo);
+            } else {
+                showtimeDto.setMovieInfo(null);
+            }
+            if (showtime.getScreen() != null) {
+                ScreenDto screenDto = mapper.map(showtime.getScreen(), ScreenDto.class);
+                if (showtime.getScreen().getCinema() != null) {
+                    CinemaDto cinemaDTO = mapper.map(showtime.getScreen().getCinema(), CinemaDto.class);
+                    screenDto.setCinemaDto(cinemaDTO);
+                } else {
+                    screenDto.setCinemaDto(null);
+                }
+                showtimeDto.setScreen(screenDto);
+            } else {
+                showtimeDto.setScreen(null);
+            }
+            return showtimeDto;
+
+        }).collect(Collectors.toList());
     }
+
 
     public ShowtimeDto createShowtime(CreateShowtimeRequest request) {
         Movie movie=movieRepository.findById(request.getMovieId())
                 .orElseThrow(()-> new RuntimeException("Movie not found"));
+        mapper.map(movie,MovieInfo.class);
         Screen screen= screenRepository.findById(request.getScreenId())
                 .orElseThrow(()-> new RuntimeException("Screen not found"));
 //        Showtime showtime= new Showtime(0,movie,screen,request.getDate(),request.getStartTime(),request.getEndTime(), LocalDateTime.now(),LocalDateTime.now(),false);
@@ -70,8 +123,8 @@ public class ShowtimeService {
         showtime.setDate(request.getDate());
         showtime.setMovie(movie);
         showtime.setScreen(screen);
-        showtime.setStartTime(LocalTime.of(request.getStartTime().getHour(),request.getStartTime().getMinute()));
-        showtime.setEndTime(LocalTime.of(request.getEndTime().getHour(),request.getEndTime().getMinute()));
+        showtime.setStartTime(request.getStartTime().toLocalTime());
+        showtime.setEndTime(request.getEndTime().toLocalTime());
         showtime.setCreatedAt(LocalDateTime.now());
         showtime.setUpdatedAt(LocalDateTime.now());
 

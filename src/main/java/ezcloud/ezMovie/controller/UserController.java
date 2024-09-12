@@ -4,6 +4,7 @@ import ezcloud.ezMovie.exception.EmailAlreadyExistsException;
 import ezcloud.ezMovie.model.dto.UserInfo;
 import ezcloud.ezMovie.model.enities.User;
 import ezcloud.ezMovie.service.UserService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping(value = "user")
+@Tag(name = "User", description = "APIs for managing user")
 public class UserController {
     @Autowired
     private UserService userService;

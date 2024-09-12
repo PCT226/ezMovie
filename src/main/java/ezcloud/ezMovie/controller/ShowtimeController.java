@@ -12,6 +12,7 @@ import ezcloud.ezMovie.service.ShowtimeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping(value = "showtime")
+@Tag(name = "Showtime", description = "APIs for managing showtime")
 public class ShowtimeController {
     @Autowired
     private ShowtimeService showtimeService;
@@ -40,8 +42,8 @@ public class ShowtimeController {
             @ApiResponse(responseCode = "200", description = "Danh sách lịch chiếu của phim được lấy thành công."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi lấy danh sách lịch chiếu phim.")
     })
-    public ResponseEntity<List<ShowtimeDto>> getAll(@PathVariable Integer movieid){
-        return ResponseEntity.ok(showtimeService.getUpcomingShowtimesForMovie(movieid));
+    public ResponseEntity<List<ShowtimeDto>> getAll(@PathVariable Integer movieId){
+        return ResponseEntity.ok(showtimeService.getUpcomingShowtimesForMovie(movieId));
     }
 
 
