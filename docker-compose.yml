@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.4
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.17.4
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.17.4
+    container_name: logstash
+    volumes:
+      - ./logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    ports:
+      - "5044:5044"  # cổng mặc định của Logstash
+    depends_on:
+      - elasticsearch
+
+  app:
+    image: openjdk:17-jdk
+    container_name: springboot-app
+    volumes:
+      - ./your-spring-boot-app.jar:/app/your-spring-boot-app.jar
+    command: ["java", "-jar", "/app/your-spring-boot-app.jar"]
+    ports:
+      - "8080:8080"
+    depends_on:
+      - elasticsearch
+      - kibana
+
+volumes:
+  esdata:
