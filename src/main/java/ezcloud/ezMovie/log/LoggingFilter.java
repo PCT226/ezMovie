@@ -79,7 +79,6 @@ public class LoggingFilter implements Filter {
                 method, url, clientIp, requestHeaders, requestBody, statusCode, responseHeaders, responseBody, timestamp
         );
 
-        // Copy nội dung đã ghi trong wrappedResponse sang httpResponse thực tế
         httpResponse.getOutputStream().write(responseBody.getBytes(StandardCharsets.UTF_8));
     }
 
