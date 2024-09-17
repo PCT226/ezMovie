@@ -51,7 +51,7 @@ public class MovieController {
     public ResponseEntity<List<MovieInfo>> searchMovies(
             @RequestParam(name = "title", required = false) String title,
             @RequestParam(name = "genre", required = false) String genre,
-            @RequestParam(name = "duration", required = false) String actor) {
+            @RequestParam(name = "actor", required = false) String actor) {
         List<MovieInfo> movies = movieService.searchMovies(title, genre, actor);
         if (movies.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
