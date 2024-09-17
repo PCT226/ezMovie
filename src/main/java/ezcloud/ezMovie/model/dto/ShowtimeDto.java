@@ -13,7 +13,6 @@ import java.util.Date;
 @Getter
 @Setter
 public class ShowtimeDto {
-    private Integer id;
     private LocalDate date;
     private LocalTime startTime;
     private LocalTime endTime;

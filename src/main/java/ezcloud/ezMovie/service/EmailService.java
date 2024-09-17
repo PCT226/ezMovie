@@ -24,7 +24,7 @@ public class EmailService {
         helper.setText(body, true); // true để kích hoạt HTML
 
         // Set email gửi đi
-        helper.setFrom("ngoclee11012003@gmail.com");
+        helper.setFrom("thanhpro2206@gmail.com");
 
         // Gửi email
         mailSender.send(mimeMessage);
