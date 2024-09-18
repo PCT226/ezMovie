@@ -4,6 +4,7 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.RequestOptions;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +25,12 @@ public class LoggingService {
     public void logToElasticsearch(String method, String url, String clientIp,
                                    String requestHeaders, String requestBody, int statusCode,
                                    String responseHeaders, String responseBody, String timestamp) {
+
+        // Lấy traceId từ MDC
+        String traceId = MDC.get("traceId");
+
         Map<String, Object> log = new HashMap<>();
+        log.put("traceId", traceId);  // Gán traceId vào log
         log.put("method", method);
         log.put("url", url);
         log.put("client_ip", clientIp);

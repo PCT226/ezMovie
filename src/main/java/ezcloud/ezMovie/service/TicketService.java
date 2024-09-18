@@ -310,7 +310,9 @@ private void saveBookedSeats(Ticket ticket, List<Integer> heldSeatIds) {
         }
         return totalPrice;
     }
-
+    public TempTicket getTempTicketInfo(String id){
+        return (TempTicket) redisTemplate.opsForValue().get(id);
+    }
 
 
 
