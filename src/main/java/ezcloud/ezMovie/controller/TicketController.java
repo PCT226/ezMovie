@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -28,10 +29,10 @@ public class TicketController {
             @ApiResponse(responseCode = "404", description = "Showtime or seats not found"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    @PostMapping("/book")
+    @PostMapping("/booking")
     public ResponseEntity<?> bookTickets(@RequestBody @Valid BookingRequestDTO bookingRequest) {
         try {
-            TicketDto ticket = ticketService.bookTickets(
+            String ticket = ticketService.reserveSeats(
                     bookingRequest.getUserId(),
                     bookingRequest.getShowtimeId(),
                     bookingRequest.getSeatIds(),
@@ -46,6 +47,25 @@ public class TicketController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
         }
     }
+
+    @Operation(summary = "Book tickets", description = "Place a booking for the given tickets.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Booking successful"),
+            @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
+            @ApiResponse(responseCode = "404", description = "Showtime or seats not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    @PostMapping("/confirm-booking/{tempId}")
+    public ResponseEntity<?> confirmBooking(@PathVariable String tempId) {
+        try {
+            TicketDto ticketDto = ticketService.confirmBooking(tempId);
+            return ResponseEntity.ok(ticketDto);
+        }catch (RuntimeException e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+    }
     @Operation(summary = "Book tickets", description = "Place a booking for the given tickets.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Booking successful"),
@@ -55,6 +75,11 @@ public class TicketController {
     })
     @GetMapping("/getHistory/{id}")
     public ResponseEntity<?> getHistory(@PathVariable UUID id) {
-        return ResponseEntity.ok(ticketService.findAllByUserId(id));
+        try {
+            List<TicketDto> tickets = ticketService.findAllByUserId(id);
+            return ResponseEntity.ok(tickets);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
     }
 }
