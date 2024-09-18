@@ -1,6 +1,9 @@
 package ezcloud.ezMovie.manage.controller;
 
 import ezcloud.ezMovie.manage.model.dto.MovieInfo;
+import ezcloud.ezMovie.manage.model.payload.CreateCinemaRequest;
+import ezcloud.ezMovie.manage.model.payload.CreateMovieRequest;
+import ezcloud.ezMovie.manage.model.payload.UpdateMovieRequest;
 import ezcloud.ezMovie.manage.service.MovieService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -65,7 +68,7 @@ public class MovieController {
             @ApiResponse(responseCode = "400", description = "Yêu cầu không hợp lệ. Dữ liệu phim không hợp lệ hoặc bị thiếu."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi tạo phim.")
     })
-    public ResponseEntity<MovieInfo> create(@RequestBody MovieInfo movieInfo){
+    public ResponseEntity<MovieInfo> create(@RequestBody CreateMovieRequest movieInfo){
         return ResponseEntity.ok(movieService.createMovie(movieInfo));
     }
 
@@ -76,7 +79,7 @@ public class MovieController {
             @ApiResponse(responseCode = "400", description = "Yêu cầu không hợp lệ. Dữ liệu phim không hợp lệ hoặc bị thiếu."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi tạo phim.")
     })
-    public ResponseEntity<MovieInfo> update(@RequestBody MovieInfo movieInfo){
+    public ResponseEntity<MovieInfo> update(@RequestBody UpdateMovieRequest movieInfo){
         return ResponseEntity.ok(movieService.updateMovie(movieInfo));
     }
 

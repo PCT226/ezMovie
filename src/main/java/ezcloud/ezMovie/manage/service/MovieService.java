@@ -3,6 +3,8 @@ package ezcloud.ezMovie.manage.service;
 import ezcloud.ezMovie.exception.MovieNotFound;
 import ezcloud.ezMovie.manage.model.dto.MovieInfo;
 import ezcloud.ezMovie.manage.model.enities.Movie;
+import ezcloud.ezMovie.manage.model.payload.CreateMovieRequest;
+import ezcloud.ezMovie.manage.model.payload.UpdateMovieRequest;
 import ezcloud.ezMovie.manage.repository.MovieRepository;
 import ezcloud.ezMovie.specification.MovieSpecification;
 import org.modelmapper.ModelMapper;
@@ -41,7 +43,7 @@ public class MovieService {
         return movies.stream().map(movie -> mapper.map(movie,MovieInfo.class))
                 .collect(Collectors.toList());
     }
-    public MovieInfo createMovie(MovieInfo movieInfo){
+    public MovieInfo createMovie(CreateMovieRequest movieInfo){
         Movie movie=new Movie();
         mapper.map(movieInfo,movie);
         movie.setCreatedAt(LocalDateTime.now());
@@ -49,7 +51,7 @@ public class MovieService {
         Movie savedMovie= movieRepository.save(movie);
         return mapper.map(savedMovie, MovieInfo.class);
     }
-    public MovieInfo updateMovie(MovieInfo movieInfo){
+    public MovieInfo updateMovie(UpdateMovieRequest movieInfo){
         Movie movie=movieRepository.findById(movieInfo.getId()).orElseThrow(()-> new MovieNotFound("Not found Movie with ID: "+movieInfo.getId()));
         mapper.map(movieInfo,movie);
         movie.setUpdatedAt(LocalDateTime.now());

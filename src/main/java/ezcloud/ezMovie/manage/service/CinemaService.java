@@ -3,6 +3,8 @@ package ezcloud.ezMovie.manage.service;
 
 import ezcloud.ezMovie.manage.model.dto.CinemaDto;
 import ezcloud.ezMovie.manage.model.enities.Cinema;
+import ezcloud.ezMovie.manage.model.payload.CreateCinemaRequest;
+import ezcloud.ezMovie.manage.model.payload.UpdateCinemaRequest;
 import ezcloud.ezMovie.manage.repository.CinemaRepository;
 import org.modelmapper.ModelMapper;
 
@@ -33,16 +35,19 @@ public class CinemaService {
         return mapper.map(cinema,CinemaDto.class);
     }
 
-    public CinemaDto createCinema(CinemaDto cinemaDto){
-        Cinema cinema=mapper.map(cinemaDto,Cinema.class);
+    public CinemaDto createCinema(CreateCinemaRequest cinemaDto){
+        Cinema cinema=new Cinema();
         cinema.setCreatedAt(LocalDateTime.now());
         cinema.setUpdatedAt(LocalDateTime.now());
         cinema.setDeleted(false);
+        cinema.setName(cinemaDto.getName());
+        cinema.setCity(cinemaDto.getCity());
+        cinema.setLocation( cinemaDto.getLocation());
         cinemaRepository.save(cinema);
         return mapper.map(cinema,CinemaDto.class);
 
     }
-    public CinemaDto updateCinema(CinemaDto cinemaDto){
+    public CinemaDto updateCinema(UpdateCinemaRequest cinemaDto){
         Cinema existingCinema = cinemaRepository.findById(cinemaDto.getId())
                 .orElseThrow(() -> new RuntimeException("Cinema not found with id: " + cinemaDto.getId()));
         mapper.map(cinemaDto,Cinema.class);

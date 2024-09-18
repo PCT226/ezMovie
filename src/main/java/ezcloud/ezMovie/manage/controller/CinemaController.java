@@ -2,6 +2,8 @@ package ezcloud.ezMovie.manage.controller;
 
 
 import ezcloud.ezMovie.manage.model.dto.CinemaDto;
+import ezcloud.ezMovie.manage.model.payload.CreateCinemaRequest;
+import ezcloud.ezMovie.manage.model.payload.UpdateCinemaRequest;
 import ezcloud.ezMovie.manage.service.CinemaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -54,7 +56,7 @@ public class CinemaController {
             @ApiResponse(responseCode = "400", description = "Yêu cầu không hợp lệ. Dữ liệu rạp chiếu phim không hợp lệ hoặc bị thiếu."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi tạo rạp chiếu phim.")
     })
-    public ResponseEntity<CinemaDto> create(@RequestBody CinemaDto cinemaDto){
+    public ResponseEntity<CinemaDto> create(@RequestBody CreateCinemaRequest cinemaDto){
         return ResponseEntity.ok(cinemaService.createCinema(cinemaDto));
     }
 
@@ -65,7 +67,7 @@ public class CinemaController {
             @ApiResponse(responseCode = "400", description = "Yêu cầu không hợp lệ. Dữ liệu rạp chiếu phim không hợp lệ hoặc bị thiếu."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi tạo rạp chiếu phim.")
     })
-    public ResponseEntity<?> update(@RequestBody CinemaDto cinemaDto){
+    public ResponseEntity<?> update(@RequestBody UpdateCinemaRequest cinemaDto){
         try{
             cinemaService.updateCinema(cinemaDto);
                 return ResponseEntity.ok("Cập nhập thành công");

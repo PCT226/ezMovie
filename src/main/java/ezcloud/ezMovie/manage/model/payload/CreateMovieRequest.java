@@ -1,16 +1,11 @@
-package ezcloud.ezMovie.manage.model.dto;
+package ezcloud.ezMovie.manage.model.payload;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class MovieInfo {
-
+public class CreateMovieRequest {
     private String cast;
     private String director;
     private String title;

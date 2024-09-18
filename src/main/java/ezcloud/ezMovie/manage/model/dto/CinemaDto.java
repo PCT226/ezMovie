@@ -10,7 +10,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CinemaDto {
-    private Integer id;
+
     private String name;
     private String location;
     private String city;
