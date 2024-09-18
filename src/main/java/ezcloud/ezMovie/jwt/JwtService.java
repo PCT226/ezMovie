@@ -1,12 +1,10 @@
 package ezcloud.ezMovie.jwt;
 
-import ezcloud.ezMovie.model.enities.CustomUserDetail;
-import ezcloud.ezMovie.model.enities.User;
+import ezcloud.ezMovie.auth.model.enities.CustomUserDetail;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;

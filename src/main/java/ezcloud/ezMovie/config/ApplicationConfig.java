@@ -2,8 +2,8 @@ package ezcloud.ezMovie.config;
 
 import ezcloud.ezMovie.jwt.JwtAuthFilter;
 import ezcloud.ezMovie.jwt.JwtService;
-import ezcloud.ezMovie.repository.UserRepository;
-import ezcloud.ezMovie.service.UserService;
+import ezcloud.ezMovie.auth.repository.UserRepository;
+import ezcloud.ezMovie.auth.service.UserService;
 import org.modelmapper.ModelMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

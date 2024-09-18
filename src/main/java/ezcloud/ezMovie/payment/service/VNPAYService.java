@@ -1,20 +1,17 @@
 package ezcloud.ezMovie.payment.service;
 
-import ezcloud.ezMovie.model.enities.Cinema;
-import ezcloud.ezMovie.model.enities.Ticket;
+import ezcloud.ezMovie.bookingTicket.model.enities.Ticket;
 import ezcloud.ezMovie.payment.config.VNPAYConfig;
-import ezcloud.ezMovie.repository.RevenueRepository;
-import ezcloud.ezMovie.repository.TicketRepository;
+import ezcloud.ezMovie.bookingTicket.repository.TicketRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import ezcloud.ezMovie.model.enities.Revenue;
+
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 

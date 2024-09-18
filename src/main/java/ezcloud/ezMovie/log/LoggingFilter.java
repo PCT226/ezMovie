@@ -1,6 +1,6 @@
 package ezcloud.ezMovie.log;
 
-import ezcloud.ezMovie.service.LoggingService;
+import ezcloud.ezMovie.log.service.LoggingService;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.FilterConfig;
