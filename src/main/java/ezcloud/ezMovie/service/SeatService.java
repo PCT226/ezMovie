@@ -24,7 +24,7 @@ public class SeatService {
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
 
-    private static final String SEAT_STATUS_KEY_PREFIX = "seat_status_";
+    private static final String SEAT_STATUS_KEY_PREFIX = "seat:status:";
 
     // Lấy danh sách ghế từ Screen
     public List<SeatDto> findAllByScreenId(int screenId) {
