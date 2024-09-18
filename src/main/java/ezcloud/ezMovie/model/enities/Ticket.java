@@ -33,10 +33,10 @@ public class Ticket {
 
     private LocalDateTime bookingTime;
     private BigDecimal totalPrice;
-    private boolean paymentStatus;
+    private String paymentStatus;
     private String orderInfo;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private boolean isDeleted = false;
-
+    private boolean isPaid = false;
 }

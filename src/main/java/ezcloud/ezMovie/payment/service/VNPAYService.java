@@ -167,7 +167,7 @@ public class VNPAYService {
         ticket.setCreatedAt(LocalDateTime.now());
         ticket.setUpdatedAt(null);  // Chưa cập nhật
         ticket.setDeleted(false);
-        ticket.setPaymentStatus(false);
+        ticket.setPaid(false);
 
         return ticketRepository.save(ticket);
     }
@@ -176,7 +176,7 @@ public class VNPAYService {
 
         if (ticketOpt.isPresent()) {
             Ticket ticket = ticketOpt.get();
-            ticket.setPaymentStatus(true);
+            ticket.setPaid(true);
             ticket.setUpdatedAt(LocalDateTime.now());
             ticketRepository.save(ticket);
         }
