@@ -31,7 +31,8 @@ public class SecurityConfig {
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/auth/**",
-            "/payment/**"
+            "/payment/**",
+            "/ticket/**"
     };
 
     @Bean
@@ -41,6 +42,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(WHITE_LIST_URL).permitAll() // Whitelisting some paths from authentication
                         .anyRequest().authenticated()) // All other requests must be authenticated
+
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless session management
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class); // Registering our JwtAuthFilter

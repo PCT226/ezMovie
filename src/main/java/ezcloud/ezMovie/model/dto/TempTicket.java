@@ -19,5 +19,5 @@ public class TempTicket implements Serializable {
     private BigDecimal totalPrice;
     private List<Integer> seatIds;
     private String discountCode;
-
+    private Boolean status = false;
 }

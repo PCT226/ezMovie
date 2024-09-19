@@ -40,7 +40,6 @@ public class TicketService {
     private UserRepository userRepository;
     @Autowired
     private ModelMapper mapper;
-
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
@@ -75,9 +74,9 @@ public class TicketService {
 
         // Tạo vé tạm thời và lưu vào Redis
         String tempTicketId = UUID.randomUUID().toString();
-        TempTicket tempTicket = new TempTicket(userId,showtimeId,totalPrice,heldSeatIds,discountCode);
+        TempTicket tempTicket = new TempTicket(userId,showtimeId,totalPrice,heldSeatIds,discountCode,false);
         redisTemplate.opsForValue().set(TEMP_TICKET_KEY_PREFIX + tempTicketId, tempTicket, HOLD_TIMEOUT, TimeUnit.SECONDS);
-        return tempTicketId;
+        return "ticket:temp:"+tempTicketId;
     }
 
     @Transactional
@@ -88,7 +87,9 @@ public class TicketService {
         if (tempTicket == null) {
             throw new RuntimeException("Temporary ticket not found or expired");
         }
-
+        if(!tempTicket.getStatus()){
+            throw new RuntimeException("NotPaid");
+        }
         Showtime showtime = showtimeRepository.findById(tempTicket.getShowtimeId())
                 .orElseThrow(() -> new RuntimeException("Showtime not found"));
         User user = userRepository.findById(tempTicket.getUserId())
@@ -101,6 +102,7 @@ public class TicketService {
         ticket.setTotalPrice(tempTicket.getTotalPrice());
         ticket.setPaymentStatus("CONFIRMED"); // Đã thanh toán
         ticket.setBookingTime(LocalDateTime.now());
+        ticket.setPaid(tempTicket.getStatus());
         ticket = ticketRepository.save(ticket);
 
         // Xác nhận đặt vé và cập nhật trạng thái ghế thành "BOOKED" với TTL
@@ -313,7 +315,11 @@ private void saveBookedSeats(Ticket ticket, List<Integer> heldSeatIds) {
     public TempTicket getTempTicketInfo(String id){
         return (TempTicket) redisTemplate.opsForValue().get(id);
     }
+    public void updateStatus(String id){
+        TempTicket tempTicket= (TempTicket) redisTemplate.opsForValue().get(id);
+        tempTicket.setStatus(true);
+        redisTemplate.opsForValue().set(id,tempTicket);
 
-
+    }
 
 }

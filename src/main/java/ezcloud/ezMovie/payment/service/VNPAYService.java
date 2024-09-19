@@ -5,6 +5,7 @@ import ezcloud.ezMovie.model.enities.Ticket;
 import ezcloud.ezMovie.payment.config.VNPAYConfig;
 import ezcloud.ezMovie.repository.RevenueRepository;
 import ezcloud.ezMovie.repository.TicketRepository;
+import ezcloud.ezMovie.service.TicketService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,14 +24,19 @@ public class VNPAYService {
 
     @Autowired
     private TicketRepository ticketRepository;
-    private UUID orderId;
+    @Autowired
+    private TicketService ticketService;
+    private String orderId;
 
-    public Map<String, String> submitOrder(HttpServletRequest request, int orderTotal, String orderInfo) {
+    public Map<String, String> submitOrder(HttpServletRequest request, String id, String orderInfo) {
         String baseUrl = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
+
+        int orderTotal = ticketService.getTempTicketInfo(id).getTotalPrice().intValue();
+
         String vnpayUrl = createOrder(request, orderTotal, orderInfo, baseUrl);
 
-        Ticket ticket = saveOrder(BigDecimal.valueOf(orderTotal),orderInfo);
-        orderId = ticket.getId();
+       // Ticket ticket = saveOrder(BigDecimal.valueOf(orderTotal),orderInfo);
+        orderId = id;
         Map<String, String> response = new HashMap<>();
         response.put("paymentUrl", vnpayUrl);
         return response;
@@ -54,7 +60,8 @@ public class VNPAYService {
 
         if (paymentStatus == 1) {
             // Nếu thanh toán thành công, cập nhật isPaid = true
-            updatePaymentStatus(orderId);
+            //updatePaymentStatus(orderId);
+            ticketService.updateStatus(orderId);
             response.put("message", "Payment Success");
             response.put("status", "success");
         } else {
@@ -159,6 +166,8 @@ public class VNPAYService {
         }
     }
 
+
+
     public Ticket saveOrder(BigDecimal amount,String orderInfo) {
         Ticket ticket = new Ticket();
         ticket.setTotalPrice(amount);
@@ -172,14 +181,7 @@ public class VNPAYService {
         return ticketRepository.save(ticket);
     }
     public void updatePaymentStatus(UUID revenueId) {
-        Optional<Ticket> ticketOpt = ticketRepository.findById(revenueId);
 
-        if (ticketOpt.isPresent()) {
-            Ticket ticket = ticketOpt.get();
-            ticket.setPaid(true);
-            ticket.setUpdatedAt(LocalDateTime.now());
-            ticketRepository.save(ticket);
-        }
     }
 
 
