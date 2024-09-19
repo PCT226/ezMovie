@@ -1,7 +1,7 @@
 package ezcloud.ezMovie.jwt;
 
-import ezcloud.ezMovie.auth.model.enities.CustomUserDetail;
-import ezcloud.ezMovie.auth.service.UserService;
+import ezcloud.ezMovie.model.enities.CustomUserDetail;
+import ezcloud.ezMovie.service.UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
