@@ -1,0 +1,12 @@
+package ezcloud.ezMovie.manage.model.dto;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class ScreenDto {
+    private Integer screenNumber;
+    private Integer capacity;
+    private CinemaDto cinemaDto;
+}
