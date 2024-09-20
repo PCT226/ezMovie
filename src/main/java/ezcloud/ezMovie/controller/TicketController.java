@@ -48,24 +48,7 @@ public class TicketController {
         }
     }
 
-    @Operation(summary = "Book tickets", description = "Place a booking for the given tickets.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Booking successful"),
-            @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
-            @ApiResponse(responseCode = "404", description = "Showtime or seats not found"),
-            @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
-    @PostMapping("/confirm-booking/{tempId}")
-    public ResponseEntity<?> confirmBooking(@PathVariable String tempId) {
-        try {
-            TicketDto ticketDto = ticketService.confirmBooking(tempId);
-            return ResponseEntity.ok(ticketDto);
-        }catch (RuntimeException e){
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
-        }catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
-        }
-    }
+
     @Operation(summary = "Book tickets", description = "Place a booking for the given tickets.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Booking successful"),

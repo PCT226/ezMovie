@@ -9,6 +9,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.types.RedisClientInfo;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -16,6 +17,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -83,13 +85,18 @@ public class TicketService {
     public TicketDto confirmBooking(String tempTicketId) {
 
         // Lấy thông tin vé tạm thời từ Redis
-        TempTicket tempTicket = (TempTicket) redisTemplate.opsForValue().get(TEMP_TICKET_KEY_PREFIX + tempTicketId);
+        TempTicket tempTicket = (TempTicket) redisTemplate.opsForValue().get(tempTicketId);
+
         if (tempTicket == null) {
             throw new RuntimeException("Temporary ticket not found or expired");
         }
+        tempTicket.setStatus(true);
+        redisTemplate.opsForValue().set(tempTicketId,tempTicket);
         if(!tempTicket.getStatus()){
             throw new RuntimeException("NotPaid");
         }
+        tempTicket.setStatus(true);
+        redisTemplate.opsForValue().set(tempTicketId,tempTicket);
         Showtime showtime = showtimeRepository.findById(tempTicket.getShowtimeId())
                 .orElseThrow(() -> new RuntimeException("Showtime not found"));
         User user = userRepository.findById(tempTicket.getUserId())
@@ -115,7 +122,7 @@ public class TicketService {
         saveBookedSeats(ticket, tempTicket.getSeatIds());
 
         // Xóa vé tạm thời khỏi Redis
-        redisTemplate.delete(TEMP_TICKET_KEY_PREFIX + tempTicketId);
+        redisTemplate.delete(tempTicketId);
 
         //Map DTO
         TicketDto ticketDto = mapper.map(ticket, TicketDto.class);
@@ -235,13 +242,21 @@ public class TicketService {
 // Phương thức giữ ghế với Redis và holdTime
 private List<Integer> holdSeats(List<Integer> seatIds, long holdTime) {
     List<Integer> heldSeatIds = new ArrayList<>();
+
     for (Integer seatId : seatIds) {
         String lockKey = "lock:" + SEAT_STATUS_KEY_PREFIX + seatId;
         Boolean lockAcquired = redisTemplate.opsForValue().setIfAbsent(lockKey, "locked", 30, TimeUnit.SECONDS);
         if (lockAcquired) {
             try {
                 String seatKey = SEAT_STATUS_KEY_PREFIX + seatId;
-                String seatStatus = (String) redisTemplate.opsForValue().get(seatKey);
+//                String seatStatus = (String) redisTemplate.opsForValue().get(seatKey);
+                byte[] seatKeySerialized = redisTemplate.getStringSerializer().serialize(seatKey);
+
+                // Lấy trạng thái ghế từ Redis
+                String seatStatus = (String) redisTemplate.execute((RedisCallback<String>) connection -> {
+                    byte[] seatStatusSerialized = connection.get(seatKeySerialized);
+                    return (seatStatusSerialized != null) ? redisTemplate.getStringSerializer().deserialize(seatStatusSerialized) : null;
+                });
 
                 if (seatStatus == null) {
                     seatStatus = AVAILABLE_STATUS;
@@ -251,7 +266,17 @@ private List<Integer> holdSeats(List<Integer> seatIds, long holdTime) {
                     throw new RuntimeException("Seat " + seatId + " is already booked or held.");
                 }
 
-                redisTemplate.opsForValue().set(seatKey, HOLD_STATUS, holdTime, TimeUnit.SECONDS);
+//                redisTemplate.opsForValue().set(seatKey, HOLD_STATUS, holdTime, TimeUnit.SECONDS);
+                // Đặt ghế vào trạng thái HOLD
+                redisTemplate.execute((RedisCallback<Object>) connection -> {
+                    connection.set(seatKeySerialized,
+                            redisTemplate.getStringSerializer().serialize(HOLD_STATUS));
+                    connection.expire(
+                            seatKeySerialized,
+                            HOLD_TIMEOUT
+                    );
+                    return null;
+                });
                 heldSeatIds.add(seatId);
             } finally {
                 redisTemplate.delete(lockKey);  // Giải phóng khóa
@@ -263,7 +288,6 @@ private List<Integer> holdSeats(List<Integer> seatIds, long holdTime) {
 
     return heldSeatIds;
 }
-
     //Lưu thông tin ghế đã đặt
 private void saveBookedSeats(Ticket ticket, List<Integer> heldSeatIds) {
     for (Integer seatId : heldSeatIds) {
