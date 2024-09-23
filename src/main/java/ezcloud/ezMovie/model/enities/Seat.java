@@ -32,4 +32,5 @@ public class Seat {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private boolean isDeleted = false;
+    private String seatStatus;
 }

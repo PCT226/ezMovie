@@ -18,7 +18,6 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    // Sử dụng phương thức để tạo khóa bí mật an toàn
     private final SecretKey SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 
     private final long EXPIRATION = 100000000000L;
@@ -36,15 +35,12 @@ public class JwtService {
         // Lấy ngày hết hạn từ token
         Date expirationDate = getExpirationDateFromToken(token);
 
-        // Kiểm tra token đã hết hạn chưa
         if (expirationDate.before(new Date())) {
             return false;
         }
 
-        // Lấy email từ token
         String email = getEmailFromToken(token);
 
-        // Kiểm tra email trong token có khớp với tên người dùng và token chưa hết hạn
         return userDetails.getEmail().equals(email);
     }
 

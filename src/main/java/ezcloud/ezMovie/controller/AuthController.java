@@ -59,14 +59,8 @@ import java.util.regex.Pattern;
 @Tag(name = "Authentication", description = "APIs for user authentication and registration")
 public class AuthController {
 
-    private final AuthenticationManager authenticationManager;
-    private final JwtService jwtService;
     private final AuthService authService;
-    private final PasswordEncoder passwordEncoder;
 
-
-    @Autowired
-    private EmailService emailService;
 
 
     @PostMapping("/login")

@@ -2,7 +2,6 @@ package ezcloud.ezMovie.repository;
 
 import ezcloud.ezMovie.model.enities.User;
 import ezcloud.ezMovie.model.dto.UserInfo;
-import ezcloud.ezMovie.model.enities.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

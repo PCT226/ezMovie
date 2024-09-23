@@ -1,15 +1,15 @@
 package ezcloud.ezMovie.payment.service;
 
-import ezcloud.ezMovie.model.enities.Cinema;
-import ezcloud.ezMovie.model.enities.Ticket;
+import ezcloud.ezMovie.model.dto.TempTicket;
+import ezcloud.ezMovie.model.enities.*;
 import ezcloud.ezMovie.payment.config.VNPAYConfig;
-import ezcloud.ezMovie.repository.RevenueRepository;
-import ezcloud.ezMovie.repository.TicketRepository;
+import ezcloud.ezMovie.repository.*;
 import ezcloud.ezMovie.service.TicketService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import ezcloud.ezMovie.model.enities.Revenue;
+
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
@@ -26,6 +26,12 @@ public class VNPAYService {
     private TicketRepository ticketRepository;
     @Autowired
     private TicketService ticketService;
+    @Autowired
+    private ShowtimeRepository showtimeRepository;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
     private String orderId;
 
     public Map<String, String> submitOrder(HttpServletRequest request, String id, String orderInfo) {
@@ -34,9 +40,9 @@ public class VNPAYService {
         int orderTotal = ticketService.getTempTicketInfo(id).getTotalPrice().intValue();
 
         String vnpayUrl = createOrder(request, orderTotal, orderInfo, baseUrl);
-
-       // Ticket ticket = saveOrder(BigDecimal.valueOf(orderTotal),orderInfo);
         orderId = id;
+
+        saveOrder(id,orderInfo);
         Map<String, String> response = new HashMap<>();
         response.put("paymentUrl", vnpayUrl);
         return response;
@@ -60,7 +66,7 @@ public class VNPAYService {
 
         if (paymentStatus == 1) {
             // Nếu thanh toán thành công, cập nhật isPaid = true
-            //updatePaymentStatus(orderId);
+            updatePaymentStatus(UUID.fromString(orderId));
             ticketService.confirmBooking(orderId);
             response.put("message", "Payment Success");
             response.put("status", "success");
@@ -114,7 +120,7 @@ public class VNPAYService {
         Iterator itr = fieldNames.iterator();
         while (itr.hasNext()) {
             String fieldName = (String) itr.next();
-            String fieldValue = (String) vnp_Params.get(fieldName);
+            String fieldValue = vnp_Params.get(fieldName);
             if ((fieldValue != null) && (fieldValue.length() > 0)) {
                 hashData.append(fieldName);
                 hashData.append('=');
@@ -168,21 +174,33 @@ public class VNPAYService {
 
 
 
-    public Ticket saveOrder(BigDecimal amount,String orderInfo) {
-        Ticket ticket = new Ticket();
-        ticket.setTotalPrice(amount);
-        ticket.setOrderInfo(orderInfo);
-        ticket.setBookingTime(LocalDateTime.now());
-        ticket.setCreatedAt(LocalDateTime.now());
-        ticket.setUpdatedAt(null);  // Chưa cập nhật
-        ticket.setDeleted(false);
-        ticket.setPaid(false);
+    public void saveOrder(String id, String orderInfo) {
+        TempTicket tempTicket = (TempTicket) redisTemplate.opsForValue().get(id);
 
-        return ticketRepository.save(ticket);
+        if (tempTicket == null) {
+            throw new RuntimeException("Temporary ticket not found or expired");
+        }
+
+        Optional<Ticket> ticketOpt = ticketRepository.findById(UUID.fromString(id));
+
+        if (ticketOpt.isPresent()) {
+            Ticket ticket = ticketOpt.get();
+            ticket.setOrderInfo(orderInfo);
+            ticket.setPaid(tempTicket.getStatus());
+            ticketRepository.save(ticket);
+        }
     }
+
     public void updatePaymentStatus(UUID revenueId) {
+        Optional<Ticket> ticketOpt = ticketRepository.findById(revenueId);
 
+        if (ticketOpt.isPresent()) {
+            Ticket ticket = ticketOpt.get();
+            ticket.setPaymentStatus("CONFIRMED");
+            ticket.setUpdatedAt(LocalDateTime.now());
+            ticket.setPaid(true);
+            ticketRepository.save(ticket);
+        }
     }
-
 
 }

@@ -38,22 +38,22 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // Disabling CSRF as we use JWT which is immune to CSRF
+                .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(WHITE_LIST_URL).permitAll() // Whitelisting some paths from authentication
-                        .anyRequest().authenticated()) // All other requests must be authenticated
+                        .requestMatchers(WHITE_LIST_URL).permitAll()
+                        .anyRequest().authenticated())
 
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless session management
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class); // Registering our JwtAuthFilter
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
     @Bean
     public AuthenticationProvider authenticationProvider(UserService userService, PasswordEncoder passwordEncoder) {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-        provider.setUserDetailsService(userService); // Setting our custom user details service
-        provider.setPasswordEncoder(passwordEncoder); // Setting the password encoder
+        provider.setUserDetailsService(userService);
+        provider.setPasswordEncoder(passwordEncoder);
         return provider;
     }
 
