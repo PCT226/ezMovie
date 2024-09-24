@@ -1,6 +1,6 @@
 package ezcloud.ezMovie.specification;
 
-import ezcloud.ezMovie.model.enities.Movie;
+import ezcloud.ezMovie.manage.model.enities.Movie;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 

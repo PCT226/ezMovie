@@ -1,17 +1,15 @@
 package ezcloud.ezMovie.controller;
 
-import ezcloud.ezMovie.model.dto.CinemaDto;
-import ezcloud.ezMovie.model.dto.ScreenDto;
-import ezcloud.ezMovie.model.enities.Screen;
-import ezcloud.ezMovie.model.payload.CreateScreenRequest;
-import ezcloud.ezMovie.model.payload.UpdateScreenRequest;
-import ezcloud.ezMovie.service.ScreenService;
+import ezcloud.ezMovie.manage.model.dto.ScreenDto;
+import ezcloud.ezMovie.manage.model.enities.Screen;
+import ezcloud.ezMovie.manage.model.payload.CreateScreenRequest;
+import ezcloud.ezMovie.manage.model.payload.UpdateScreenRequest;
+import ezcloud.ezMovie.manage.service.ScreenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

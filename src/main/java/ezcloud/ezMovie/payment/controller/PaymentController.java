@@ -1,15 +1,11 @@
 package ezcloud.ezMovie.payment.controller;
 
-import ezcloud.ezMovie.model.dto.TempTicket;
 import ezcloud.ezMovie.payment.service.VNPAYService;
-import ezcloud.ezMovie.service.TicketService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping(value = "payment")

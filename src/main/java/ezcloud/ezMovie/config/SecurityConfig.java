@@ -1,7 +1,7 @@
 package ezcloud.ezMovie.config;
 
 import ezcloud.ezMovie.jwt.JwtAuthFilter;
-import ezcloud.ezMovie.service.UserService;
+import ezcloud.ezMovie.auth.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,7 +32,8 @@ public class SecurityConfig {
             "/v3/api-docs/**",
             "/auth/**",
             "/payment/**",
-            "/ticket/**"
+            "/ticket/**",
+            "/movie/**"
     };
 
     @Bean

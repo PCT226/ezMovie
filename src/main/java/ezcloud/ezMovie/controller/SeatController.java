@@ -1,14 +1,10 @@
 package ezcloud.ezMovie.controller;
 
-import ezcloud.ezMovie.model.dto.ScreenDto;
-import ezcloud.ezMovie.model.dto.SeatDto;
-import ezcloud.ezMovie.model.enities.Screen;
-import ezcloud.ezMovie.model.enities.Seat;
-import ezcloud.ezMovie.model.payload.CreateScreenRequest;
-import ezcloud.ezMovie.model.payload.CreateSeatRequest;
-import ezcloud.ezMovie.model.payload.UpdateScreenRequest;
-import ezcloud.ezMovie.model.payload.UpdateSeatRequest;
-import ezcloud.ezMovie.service.SeatService;
+import ezcloud.ezMovie.manage.model.dto.SeatDto;
+import ezcloud.ezMovie.manage.model.enities.Seat;
+import ezcloud.ezMovie.manage.model.payload.CreateSeatRequest;
+import ezcloud.ezMovie.manage.model.payload.UpdateSeatRequest;
+import ezcloud.ezMovie.manage.service.SeatService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;

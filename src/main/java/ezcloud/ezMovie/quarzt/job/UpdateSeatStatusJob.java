@@ -1,6 +1,6 @@
 package ezcloud.ezMovie.quarzt.job;
 
-import ezcloud.ezMovie.service.SeatService;
+import ezcloud.ezMovie.manage.service.SeatService;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;

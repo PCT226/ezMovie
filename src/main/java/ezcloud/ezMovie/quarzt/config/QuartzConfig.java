@@ -32,6 +32,6 @@ public class QuartzConfig {
 
     @Bean
     public JobFactory jobFactory(AutowiringSpringBeanJobFactory autowiringSpringBeanJobFactory) {
-        return autowiringSpringBeanJobFactory; // Đăng ký JobFactory tùy chỉnh
+        return autowiringSpringBeanJobFactory; // Đăng ký JobFactory
     }
 }

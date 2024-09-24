@@ -1,14 +1,9 @@
 package ezcloud.ezMovie.controller;
 
-import ezcloud.ezMovie.model.dto.ScreenDto;
-import ezcloud.ezMovie.model.dto.ShowtimeDto;
-import ezcloud.ezMovie.model.enities.Screen;
-import ezcloud.ezMovie.model.enities.Showtime;
-import ezcloud.ezMovie.model.payload.CreateScreenRequest;
-import ezcloud.ezMovie.model.payload.CreateShowtimeRequest;
-import ezcloud.ezMovie.model.payload.UpdateScreenRequest;
-import ezcloud.ezMovie.model.payload.UpdateShowtimeRq;
-import ezcloud.ezMovie.service.ShowtimeService;
+import ezcloud.ezMovie.manage.model.dto.ShowtimeDto;
+import ezcloud.ezMovie.manage.model.payload.CreateShowtimeRequest;
+import ezcloud.ezMovie.manage.model.payload.UpdateShowtimeRq;
+import ezcloud.ezMovie.manage.service.ShowtimeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
