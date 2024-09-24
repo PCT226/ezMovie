@@ -3,10 +3,12 @@ package ezcloud.ezMovie.service;
 import ezcloud.ezMovie.model.dto.SeatDto;
 import ezcloud.ezMovie.model.enities.Screen;
 import ezcloud.ezMovie.model.enities.Seat;
+import ezcloud.ezMovie.model.enities.Showtime;
 import ezcloud.ezMovie.model.payload.CreateSeatRequest;
 import ezcloud.ezMovie.model.payload.UpdateSeatRequest;
 import ezcloud.ezMovie.repository.ScreenRepository;
 import ezcloud.ezMovie.repository.SeatRepository;
+import ezcloud.ezMovie.repository.ShowtimeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,8 @@ public class SeatService {
     @Autowired
     private ScreenRepository screenRepository;
     @Autowired
+    private ShowtimeRepository showtimeRepository;
+    @Autowired
     private RedisTemplate<String, String> redisTemplate;
 
     private static final String SEAT_STATUS_KEY_PREFIX = "seat:status:";
@@ -35,11 +39,12 @@ public class SeatService {
 
         // Kiểm tra trạng thái của từng ghế từ Redis và trả về DTO
         return seats.stream().map(seat -> {
-            String seatStatusKey = SEAT_STATUS_KEY_PREFIX + seat.getId();
-            String seatStatus = redisTemplate.opsForValue().get(seatStatusKey);
+//            String seatStatusKey = SEAT_STATUS_KEY_PREFIX + seat.getId();
+//            String seatStatus = redisTemplate.opsForValue().get(seatStatusKey);
+            String status= seat.getSeatStatus();
 
-            if (seatStatus == null) {
-                seatStatus = "AVAILABLE"; // Mặc định là AVAILABLE nếu không có trong Redis
+            if ( status == null) {
+                status = "AVAILABLE"; // Mặc định là AVAILABLE nếu không có trong Redis
             }
 
             // Tạo SeatDTO để trả về cho frontend
@@ -47,7 +52,7 @@ public class SeatService {
             seatDTO.setSeatId(seat.getId());
             seatDTO.setSeatNumber(seat.getSeatNumber());
             seatDTO.setPrice(seat.getPrice());
-            seatDTO.setStatus(seatStatus);
+            seatDTO.setStatus(status);
 
             return seatDTO;
         }).collect(Collectors.toList());
@@ -61,6 +66,7 @@ public class SeatService {
         seat.setSeatNumber(request.getSeatNumber());
         seat.setPrice(request.getPrice());
         seat.setScreen(screen);
+        seat.setSeatStatus("AVAILABLE");
         Seat savedSeat = seatRepository.save(seat);
 
         // Cập nhật trạng thái ghế trong Redis khi tạo mới ghế
@@ -92,5 +98,29 @@ public class SeatService {
         // Xóa trạng thái ghế khỏi Redis khi ghế bị xóa
         String seatStatusKey = SEAT_STATUS_KEY_PREFIX + seatId;
         redisTemplate.delete(seatStatusKey);
+    }
+
+
+    // Cập nhật trạng thái ghế sau khi giờ chiếu kết thúc
+    public void updateSeatStatusAfterShowtime(String showtimeId) {
+        // 1. Lấy danh sách ghế từ showtimeId
+        Showtime showtime = showtimeRepository.findById(Integer.parseInt(showtimeId)).orElse(null);
+
+        if (showtime != null) {
+            List<Seat> seats = seatRepository.findAllByScreenIdAndIsDeletedFalse(showtime.getScreen().getId());
+
+            // 2. Cập nhật trạng thái ghế sang AVAILABLE
+            for (Seat seat : seats) {
+                if(seat.getSeatStatus().equals("BOOKED")) {
+                    seat.setSeatStatus("AVAILABLE");
+                    seat.setUpdatedAt(LocalDateTime.now());
+                    seatRepository.save(seat);
+
+                    // Cập nhật Redis (nếu bạn sử dụng Redis để lưu trữ trạng thái ghế)
+                    String redisKey = SEAT_STATUS_KEY_PREFIX + seat.getId();
+                    redisTemplate.opsForValue().set(redisKey, "AVAILABLE");
+                }
+            }
+        }
     }
 }

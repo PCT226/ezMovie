@@ -62,6 +62,7 @@ public class VNPAYService {
             // Nếu thanh toán thành công, cập nhật isPaid = true
             //updatePaymentStatus(orderId);
             ticketService.updateStatus(orderId);
+            ticketService.confirmBooking(orderId);
             response.put("message", "Payment Success");
             response.put("status", "success");
         } else {

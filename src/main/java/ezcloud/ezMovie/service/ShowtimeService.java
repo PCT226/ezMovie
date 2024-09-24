@@ -10,17 +10,22 @@ import ezcloud.ezMovie.model.enities.Screen;
 import ezcloud.ezMovie.model.enities.Showtime;
 import ezcloud.ezMovie.model.payload.CreateShowtimeRequest;
 import ezcloud.ezMovie.model.payload.UpdateShowtimeRq;
+import ezcloud.ezMovie.quarzt.job.UpdateSeatStatusJob;
 import ezcloud.ezMovie.repository.MovieRepository;
 import ezcloud.ezMovie.repository.ScreenRepository;
 import ezcloud.ezMovie.repository.ShowtimeRepository;
 import org.modelmapper.ModelMapper;
+import org.quartz.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,6 +37,8 @@ public class ShowtimeService {
     private MovieRepository movieRepository;
     @Autowired
     private MovieService movieService;
+    @Autowired
+    private SchedulerFactoryBean schedulerFactoryBean;
     @Autowired
     private ScreenRepository screenRepository;
     @Autowired
@@ -49,7 +56,7 @@ public class ShowtimeService {
         todayUpcoming.addAll(futureShowtimes);
 
         return todayUpcoming.stream().map(showtime -> {
-            ShowtimeDto showtimeDto=mapper.map(showtime,ShowtimeDto.class);
+            ShowtimeDto showtimeDto = mapper.map(showtime, ShowtimeDto.class);
             if (showtime.getMovie() != null) {
                 MovieInfo movieInfo = mapper.map(showtime.getMovie(), MovieInfo.class);
                 showtimeDto.setMovieInfo(movieInfo);
@@ -87,7 +94,7 @@ public class ShowtimeService {
         todayUpcoming.addAll(futureShowtimes);
 
         return todayUpcoming.stream().map(showtime -> {
-            ShowtimeDto showtimeDto=mapper.map(showtime,ShowtimeDto.class);
+            ShowtimeDto showtimeDto = mapper.map(showtime, ShowtimeDto.class);
             if (showtime.getMovie() != null) {
                 MovieInfo movieInfo = mapper.map(showtime.getMovie(), MovieInfo.class);
                 showtimeDto.setMovieInfo(movieInfo);
@@ -112,14 +119,14 @@ public class ShowtimeService {
     }
 
 
-    public ShowtimeDto createShowtime(CreateShowtimeRequest request) {
-        Movie movie=movieRepository.findById(request.getMovieId())
-                .orElseThrow(()-> new RuntimeException("Movie not found"));
-        mapper.map(movie,MovieInfo.class);
-        Screen screen= screenRepository.findById(request.getScreenId())
-                .orElseThrow(()-> new RuntimeException("Screen not found"));
+    public ShowtimeDto createShowtime(CreateShowtimeRequest request) throws SchedulerException {
+        Movie movie = movieRepository.findById(request.getMovieId())
+                .orElseThrow(() -> new RuntimeException("Movie not found"));
+        mapper.map(movie, MovieInfo.class);
+        Screen screen = screenRepository.findById(request.getScreenId())
+                .orElseThrow(() -> new RuntimeException("Screen not found"));
 //        Showtime showtime= new Showtime(0,movie,screen,request.getDate(),request.getStartTime(),request.getEndTime(), LocalDateTime.now(),LocalDateTime.now(),false);
-        Showtime showtime =new Showtime();
+        Showtime showtime = new Showtime();
         showtime.setDate(request.getDate());
         showtime.setMovie(movie);
         showtime.setScreen(screen);
@@ -128,12 +135,14 @@ public class ShowtimeService {
         showtime.setCreatedAt(LocalDateTime.now());
         showtime.setUpdatedAt(LocalDateTime.now());
 
-        showtimeRepository.save(showtime);
-        return mapper.map(showtime,ShowtimeDto.class);
+        showtime = showtimeRepository.save(showtime);
+        scheduleUpdateSeatStatusJob(showtime);
+        return mapper.map(showtime, ShowtimeDto.class);
     }
-    public ShowtimeDto updateShowtime(UpdateShowtimeRq rq){
-        Showtime showtime=showtimeRepository.findById(rq.getShowtimeId())
-                .orElseThrow(()->new RuntimeException("Not found Showtime"));
+
+    public ShowtimeDto updateShowtime(UpdateShowtimeRq rq) {
+        Showtime showtime = showtimeRepository.findById(rq.getShowtimeId())
+                .orElseThrow(() -> new RuntimeException("Not found Showtime"));
         if (rq.getMovieId() != null && !rq.getMovieId().equals(showtime.getMovie().getId())) {
             Movie movie = movieRepository.findById(rq.getMovieId())
                     .orElseThrow(() -> new RuntimeException("Movie not found"));
@@ -148,13 +157,39 @@ public class ShowtimeService {
         showtime.setStartTime(rq.getStartTime());
         showtime.setEndTime(rq.getEndTime());
         showtime.setUpdatedAt(LocalDateTime.now());
-        Showtime updatedShowtime=showtimeRepository.save(showtime);
-        return mapper.map(updatedShowtime,ShowtimeDto.class);
+        Showtime updatedShowtime = showtimeRepository.save(showtime);
+        return mapper.map(updatedShowtime, ShowtimeDto.class);
     }
 
-    public void deleteShowtime(int id){
-        Showtime showtime=showtimeRepository.findById(id).orElseThrow(()->new RuntimeException("Not found Showtime to Delete"));
+    public void deleteShowtime(int id) {
+        Showtime showtime = showtimeRepository.findById(id).orElseThrow(() -> new RuntimeException("Not found Showtime to Delete"));
         showtime.setDeleted(true);
         showtimeRepository.save(showtime);
     }
+
+    // Phương thức để lên lịch job
+    private void scheduleUpdateSeatStatusJob(Showtime showtime) throws SchedulerException {
+        Scheduler scheduler = schedulerFactoryBean.getScheduler();
+
+        // Tạo JobDetail và truyền showtimeId vào JobDataMap
+        JobDetail jobDetail = JobBuilder.newJob(UpdateSeatStatusJob.class)
+                .withIdentity("updateSeatStatusJob-" + showtime.getId(), "seatStatusGroup")
+                .usingJobData("showtimeId", showtime.getId().toString())
+                .build();
+
+        // Tạo Trigger để job chạy vào thời gian kết thúc giờ chiếu
+        Trigger trigger = TriggerBuilder.newTrigger()
+                .withIdentity("updateSeatStatusTrigger-" + showtime.getId(), "seatStatusGroup")
+                .startAt(Date.from(
+                        LocalDateTime.of(showtime.getDate(), showtime.getEndTime()) // Kết hợp ngày và giờ chiếu
+                                .atZone(ZoneId.systemDefault()) // Chuyển đổi theo múi giờ hệ thống
+                                .toInstant() // Thời gian kết thúc giờ chiếu
+                ))
+                .build();
+
+        // Lên lịch job
+        scheduler.scheduleJob(jobDetail, trigger);
+    }
+
+
 }

@@ -7,6 +7,7 @@ import ezcloud.ezMovie.repository.MovieRepository;
 import ezcloud.ezMovie.specification.MovieSpecification;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +23,7 @@ public class MovieService {
     @Autowired
     private ModelMapper mapper;
     public List<MovieInfo> findAll(){
-        List<Movie> movies=movieRepository.findAllByIsDeleted(false);
+        List<Movie> movies=movieRepository.findAllByIsDeletedFalse();
         return movies.stream().map(movie -> mapper.map(movie, MovieInfo.class))
                 .collect(Collectors.toList());
     }

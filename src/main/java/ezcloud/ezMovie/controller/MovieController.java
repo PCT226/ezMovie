@@ -2,12 +2,14 @@ package ezcloud.ezMovie.controller;
 
 import ezcloud.ezMovie.model.dto.CinemaDto;
 import ezcloud.ezMovie.model.dto.MovieInfo;
+import ezcloud.ezMovie.rateLimit.RateLimit;
 import ezcloud.ezMovie.service.MovieService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,12 +18,12 @@ import java.util.List;
 
 @RestController
 @RequestMapping(value = "movie")
-
 @Tag(name = "Movie", description = "APIs for managing movies")
 public class MovieController {
     @Autowired
     private MovieService movieService;
     @GetMapping(value = "/")
+    @RateLimit(ipCapacity = 10,ipRefillDuration = 60,ipRefillTokens = 5,systemCapacity = 100,systemRefillDuration = 60,systemRefillTokens = 50)
     @Operation(summary = "Get all movies", description = "Retrieve a list of all movies")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Danh sách phim được lấy thành công."),
