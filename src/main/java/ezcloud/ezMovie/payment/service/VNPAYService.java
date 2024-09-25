@@ -32,7 +32,7 @@ public class VNPAYService {
 
         String vnpayUrl = createOrder(request, orderTotal, orderInfo, baseUrl);
 
-       // Ticket ticket = saveOrder(BigDecimal.valueOf(orderTotal),orderInfo);
+        // Ticket ticket = saveOrder(BigDecimal.valueOf(orderTotal),orderInfo);
         orderId = id;
         Map<String, String> response = new HashMap<>();
         response.put("paymentUrl", vnpayUrl);
@@ -60,6 +60,7 @@ public class VNPAYService {
             //updatePaymentStatus(orderId);
             ticketService.updateStatus(orderId);
             ticketService.confirmBooking(orderId);
+            saveOrder(orderInfo);
             response.put("message", "Payment Success");
             response.put("status", "success");
         } else {
@@ -166,15 +167,11 @@ public class VNPAYService {
 
 
 
-    public Ticket saveOrder(BigDecimal amount,String orderInfo) {
+    public Ticket saveOrder(String orderInfo) {
         Ticket ticket = new Ticket();
-        ticket.setTotalPrice(amount);
         ticket.setOrderInfo(orderInfo);
-        ticket.setBookingTime(LocalDateTime.now());
         ticket.setCreatedAt(LocalDateTime.now());
         ticket.setUpdatedAt(null);  // Chưa cập nhật
-        ticket.setDeleted(false);
-        ticket.setPaid(false);
 
         return ticketRepository.save(ticket);
     }
