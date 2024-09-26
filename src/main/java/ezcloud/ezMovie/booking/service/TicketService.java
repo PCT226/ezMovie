@@ -205,47 +205,6 @@ public class TicketService {
         }).collect(Collectors.toList());
     }
 
-
-
-//    // Phương thức giữ ghế với Redis
-//    private List<Integer> holdSeats(List<Integer> seatIds) {
-//        List<Integer> heldSeatIds = new ArrayList<>();
-//        redisTemplate.execute((RedisCallback<Boolean>) connection -> {
-//            connection.multi();
-//            for (Integer seatId : seatIds) {
-//                byte[] seatKey = redisTemplate.getStringSerializer().serialize(SEAT_STATUS_KEY_PREFIX + seatId);
-//                connection.get(seatKey);  // Lấy trạng thái ghế
-//            }
-//            List<Object> results = connection.exec();  // Hoàn thành việc kiểm tra trạng thái
-//
-//            for (int i = 0; i < results.size(); i++) {
-//                byte[] seatStatusBytes = (byte[]) results.get(i);
-//                String seatStatus = seatStatusBytes != null ? new String(seatStatusBytes) : AVAILABLE_STATUS;
-//                if (BOOKED_STATUS.equals(seatStatus) || HOLD_STATUS.equals(seatStatus)) {
-//                    throw new RuntimeException("Seat " + seatIds.get(i) + " is already booked or held.");
-//                }
-//            }
-//
-//            // Giữ ghế nếu tất cả đều trống
-//            connection.multi();
-//            for (Integer seatId : seatIds) {
-//                String seatStatusKey = SEAT_STATUS_KEY_PREFIX + seatId;
-//                connection.set(
-//                        redisTemplate.getStringSerializer().serialize(seatStatusKey),
-//                        redisTemplate.getStringSerializer().serialize(HOLD_STATUS)
-//                ); // Set ghế vào trạng thái HOLD
-//                connection.expire(
-//                        redisTemplate.getStringSerializer().serialize(seatStatusKey),
-//                        HOLD_TIMEOUT
-//                ); // Giữ ghế trong HOLD_TIMEOUT giây
-//                heldSeatIds.add(seatId); // Lưu danh sách ghế đã giữ
-//            }
-//            connection.exec();
-//            return true;
-//        });
-//
-//        return heldSeatIds;
-//    }
 // Phương thức giữ ghế với Redis và holdTime
 private List<Integer> holdSeats(List<Integer> seatIds, long holdTime) {
     List<Integer> heldSeatIds = new ArrayList<>();
@@ -358,5 +317,14 @@ private void saveBookedSeats(Ticket ticket, List<Integer> heldSeatIds) {
         redisTemplate.opsForValue().set(id,tempTicket);
 
     }
-
+    public boolean isRedisAlive() {
+        try {
+            // Gửi lệnh PING đến Redis
+            String response = redisTemplate.getConnectionFactory().getConnection().ping();
+            return "PONG".equals(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false; // Redis không hoạt động
+        }
+    }
 }

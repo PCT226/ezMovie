@@ -1,37 +1,29 @@
 package ezcloud.ezMovie.quarzt.config;
 
-import org.quartz.Scheduler;
-import org.quartz.SchedulerException;
-import org.quartz.spi.JobFactory;
+import ezcloud.ezMovie.quarzt.job.JobA;
+import org.quartz.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 
 @Configuration
 public class QuartzConfig {
-    @Bean
-    public SchedulerFactoryBean schedulerFactoryBean(JobFactory jobFactory) {
-        SchedulerFactoryBean schedulerFactory = new SchedulerFactoryBean();
-        schedulerFactory.setJobFactory(jobFactory);
-        schedulerFactory.setAutoStartup(true);
-        return schedulerFactory;
-    }
-//@Bean
-//public SchedulerFactoryBean schedulerFactoryBean() {
-//    SchedulerFactoryBean factory = new SchedulerFactoryBean();
-//    factory.setJobFactory(jobFactory());
-//    return factory;
-//}
 
     @Bean
-    public Scheduler scheduler(SchedulerFactoryBean schedulerFactoryBean)throws SchedulerException {
-        Scheduler scheduler = schedulerFactoryBean.getScheduler();
-        scheduler.start(); // Khởi động scheduler
-        return scheduler;
+    public JobDetail jobADetail() {
+        return JobBuilder.newJob(JobA.class)
+                .withIdentity("jobA")
+                .storeDurably()
+                .build();
     }
 
     @Bean
-    public JobFactory jobFactory(AutowiringSpringBeanJobFactory autowiringSpringBeanJobFactory) {
-        return autowiringSpringBeanJobFactory; // Đăng ký JobFactory
+    public Trigger jobATrigger() {
+        return TriggerBuilder.newTrigger()
+                .forJob(jobADetail())
+                .withIdentity("triggerA")
+                .withSchedule(SimpleScheduleBuilder.simpleSchedule()
+                        .withIntervalInSeconds(10)
+                        .repeatForever())
+                .build();
     }
 }

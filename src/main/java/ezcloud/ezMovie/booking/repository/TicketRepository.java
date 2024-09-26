@@ -11,4 +11,5 @@ import java.util.List;
 @Repository
 public interface TicketRepository extends JpaRepository<Ticket, UUID> {
     List<Ticket> findAllByUserId(UUID userId);
+    List<Ticket> findAllByShowtime_Id(Integer id);
 }

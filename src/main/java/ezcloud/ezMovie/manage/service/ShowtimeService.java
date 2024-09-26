@@ -9,7 +9,6 @@ import ezcloud.ezMovie.manage.model.enities.Screen;
 import ezcloud.ezMovie.manage.model.enities.Showtime;
 import ezcloud.ezMovie.manage.model.payload.CreateShowtimeRequest;
 import ezcloud.ezMovie.manage.model.payload.UpdateShowtimeRq;
-import ezcloud.ezMovie.quarzt.job.UpdateSeatStatusJob;
 import ezcloud.ezMovie.manage.repository.MovieRepository;
 import ezcloud.ezMovie.manage.repository.ScreenRepository;
 import ezcloud.ezMovie.manage.repository.ShowtimeRepository;
@@ -33,10 +32,6 @@ public class ShowtimeService {
     private ShowtimeRepository showtimeRepository;
     @Autowired
     private MovieRepository movieRepository;
-    @Autowired
-    private MovieService movieService;
-    @Autowired
-    private SchedulerFactoryBean schedulerFactoryBean;
     @Autowired
     private ScreenRepository screenRepository;
     @Autowired
@@ -134,7 +129,7 @@ public class ShowtimeService {
         showtime.setUpdatedAt(LocalDateTime.now());
 
         showtime = showtimeRepository.save(showtime);
-        scheduleUpdateSeatStatusJob(showtime);
+        //scheduleUpdateSeatStatusJob(showtime);
         return mapper.map(showtime, ShowtimeDto.class);
     }
 
@@ -165,29 +160,15 @@ public class ShowtimeService {
         showtimeRepository.save(showtime);
     }
 
-    // Phương thức để lên lịch job
-    private void scheduleUpdateSeatStatusJob(Showtime showtime) throws SchedulerException {
-        Scheduler scheduler = schedulerFactoryBean.getScheduler();
+    public List<Showtime> getShowtimeNow() {
+        LocalDate nowDate = LocalDate.now();
+        LocalTime nowTime = LocalTime.now();
 
-        // Tạo JobDetail và truyền showtimeId vào JobDataMap
-        JobDetail jobDetail = JobBuilder.newJob(UpdateSeatStatusJob.class)
-                .withIdentity("updateSeatStatusJob-" + showtime.getId(), "seatStatusGroup")
-                .usingJobData("showtimeId", showtime.getId().toString())
-                .build();
+        List<Showtime> todayUpcoming = showtimeRepository.findShowtimesByDateAndTime(nowDate,nowTime);
 
-        // Tạo Trigger để job chạy vào thời gian kết thúc giờ chiếu
-        Trigger trigger = TriggerBuilder.newTrigger()
-                .withIdentity("updateSeatStatusTrigger-" + showtime.getId(), "seatStatusGroup")
-                .startAt(Date.from(
-                        LocalDateTime.of(showtime.getDate(), showtime.getEndTime()) // Kết hợp ngày và giờ chiếu
-                                .atZone(ZoneId.systemDefault()) // Chuyển đổi theo múi giờ hệ thống
-                                .toInstant() // Thời gian kết thúc giờ chiếu
-                ))
-                .build();
-
-        // Lên lịch job
-        scheduler.scheduleJob(jobDetail, trigger);
+        return todayUpcoming;
     }
+
 
 
 }
