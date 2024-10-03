@@ -1,5 +1,7 @@
 package ezcloud.ezMovie.booking.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import ezcloud.ezMovie.auth.model.dto.UserInfo;
 import ezcloud.ezMovie.auth.model.enities.User;
 import ezcloud.ezMovie.auth.repository.UserRepository;
@@ -8,20 +10,19 @@ import ezcloud.ezMovie.booking.model.dto.TicketDto;
 import ezcloud.ezMovie.booking.model.enities.BookedSeat;
 import ezcloud.ezMovie.booking.model.enities.Discount;
 import ezcloud.ezMovie.booking.model.enities.Ticket;
-import ezcloud.ezMovie.manage.model.enities.Seat;
 import ezcloud.ezMovie.booking.repository.BookedSeatRepository;
-import ezcloud.ezMovie.booking.repository.TicketRepository;
-import ezcloud.ezMovie.manage.model.dto.CinemaDto;
-import ezcloud.ezMovie.manage.model.dto.MovieInfo;
-import ezcloud.ezMovie.manage.model.dto.ScreenDto;
-import ezcloud.ezMovie.manage.model.dto.ShowtimeDto;
-import ezcloud.ezMovie.manage.model.enities.Showtime;
 import ezcloud.ezMovie.booking.repository.DiscountRepository;
+import ezcloud.ezMovie.booking.repository.TicketRepository;
+import ezcloud.ezMovie.manage.model.dto.*;
+import ezcloud.ezMovie.manage.model.enities.Seat;
+import ezcloud.ezMovie.manage.model.enities.Showtime;
 import ezcloud.ezMovie.manage.repository.SeatRepository;
 import ezcloud.ezMovie.manage.repository.ShowtimeRepository;
 import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -29,26 +30,26 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
 public class TicketService {
+    //private static final String TEMP_TICKET_KEY_PREFIX = "ticket:temp:";
+    private static final String SEAT_STATUS_KEY_PREFIX = "seat:status:";
+    private static final String BOOKED_STATUS = "BOOKED";
+    private static final String HOLD_STATUS = "HOLD";
+    private static final String AVAILABLE_STATUS = "AVAILABLE";
+    private static final int HOLD_TIMEOUT = 600; // Giữ ghế trong 10 phút
     @Autowired
     private TicketRepository ticketRepository;
-
     @Autowired
     private SeatRepository seatRepository;
-
     @Autowired
     private ShowtimeRepository showtimeRepository;
-
     @Autowired
     private DiscountRepository discountRepository;
-
     @Autowired
     private BookedSeatRepository bookedSeatRepository;
     @Autowired
@@ -57,94 +58,120 @@ public class TicketService {
     private ModelMapper mapper;
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
-
-    private static final String TEMP_TICKET_KEY_PREFIX = "ticket:temp:";
-    private static final String SEAT_STATUS_KEY_PREFIX = "seat:status:";
-    private static final String BOOKED_STATUS = "BOOKED";
-    private static final String HOLD_STATUS = "HOLD";
-    private static final String AVAILABLE_STATUS = "AVAILABLE";
-    private static final int HOLD_TIMEOUT = 600; // Giữ ghế trong 10 phút
-
-
-
+    private List<Integer> listSeatId;
     @Transactional
-    public String reserveSeats(UUID userId, Integer showtimeId, List<Integer> seatIds, String discountCode) {
-        // Lấy thông tin suất chiếu và người dùng
+    public String reserveSeats(UUID userId, Integer showtimeId, List<Integer> seatIds, String discountCode) throws Exception {
+
         Showtime showtime = showtimeRepository.findById(showtimeId)
                 .orElseThrow(() -> new RuntimeException("Showtime not found"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Giữ ghế tạm thời
-        List<Integer> heldSeatIds;
-        try {
-            heldSeatIds = holdSeats(seatIds, HOLD_TIMEOUT);
-        } catch (RuntimeException e) {
-            // Xử lý lỗi nếu không thể giữ ghế và khôi phục trạng thái ghế nếu cần
-            throw new RuntimeException("Failed to hold seats: " + e.getMessage());
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime endTime = LocalDateTime.of(showtime.getDate(), showtime.getEndTime());
+        long ttlSeconds = Duration.between(now, endTime).getSeconds();
+
+        List<SeatDto> availableSeats = getAvailableSeatsByShowtime(showtimeId,ttlSeconds);
+
+        if (availableSeats.isEmpty()) {
+            throw new RuntimeException("Seats available not found");
         }
+
+        List<Integer> availableSeatIds = null;
+        try {
+            availableSeatIds = availableSeats.stream()
+                    .map(SeatDto::getSeatId)
+                    .collect(Collectors.toList());
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
+        for (Integer seatId : seatIds) {
+            if (!availableSeatIds.contains(seatId)) {
+                throw new RuntimeException("Seat with id " + seatId + " in Showtime with id "+showtimeId+" is not available.");
+            }
+        }
+        listSeatId = seatIds;
+//        // Giữ ghế tạm thời
+//        List<Integer> heldSeatIds;
+//        try {
+//            heldSeatIds = holdSeats(seatIds, HOLD_TIMEOUT, showtimeId);
+//        } catch (RuntimeException e) {
+//            throw new RuntimeException("Failed to hold seats: " + e.getMessage());
+//        }
 
         // Tính toán tổng tiền
         BigDecimal totalPrice = calculateTotalPrice(seatIds, discountCode);
+        Ticket ticket = new Ticket();
+        ticket.setUser(user);
+        ticket.setTotalPrice(totalPrice);
+        ticket.setBookingTime(LocalDateTime.now());
+        ticket.setCreatedAt(LocalDateTime.now());
+        ticket.setUpdatedAt(null); // Chưa cập nhật
+        ticket.setDeleted(false);
+        ticket.setPaymentStatus("FALSE");
+        ticket.setShowtime(showtime);
 
-        // Tạo vé tạm thời và lưu vào Redis
-        String tempTicketId = UUID.randomUUID().toString();
-        TempTicket tempTicket = new TempTicket(userId,showtimeId,totalPrice,heldSeatIds,discountCode,false);
-        redisTemplate.opsForValue().set(TEMP_TICKET_KEY_PREFIX + tempTicketId, tempTicket, HOLD_TIMEOUT, TimeUnit.SECONDS);
-        return TEMP_TICKET_KEY_PREFIX + tempTicketId;
+        ticketRepository.save(ticket);
+
+//        // Tạo vé tạm thời và lưu vào Redis
+        String tempTicketId = String.valueOf(ticket.getId());
+        TempTicket tempTicket = new TempTicket(userId, showtimeId, totalPrice, seatIds, discountCode, false);
+        try {
+            redisTemplate.opsForValue().set(tempTicketId, tempTicket, HOLD_TIMEOUT, TimeUnit.SECONDS);
+        }catch (Exception e) {
+            System.err.println("Lỗi khi lưu vé tạm thời vào Redis: " + e.getMessage());
+        }
+
+        return tempTicketId;
+
     }
 
     @Transactional
     public TicketDto confirmBooking(String tempTicketId) {
+        Ticket ticket = ticketRepository.findById(UUID.fromString(tempTicketId))
+                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+        try{
+            TempTicket tempTicket = (TempTicket) redisTemplate.opsForValue().get(tempTicketId);
+            if (tempTicket == null) {
+                throw new RuntimeException("Temporary ticket not found or expired");
+            }
 
-        // Lấy thông tin vé tạm thời từ Redis
-        TempTicket tempTicket = (TempTicket) redisTemplate.opsForValue().get(tempTicketId);
-        if (tempTicket == null) {
-            throw new RuntimeException("Temporary ticket not found or expired");
+            String redisKey = String.valueOf(tempTicket.getShowtimeId());
+            List<Object> availableSeats = (List<Object>) redisTemplate.opsForValue().get(redisKey);
+
+            if (availableSeats != null) {
+                Iterator<Object> iterator = availableSeats.iterator();
+                while (iterator.hasNext()) {
+                    SeatDto seat = (SeatDto) iterator.next();
+                    if (tempTicket.getSeatIds().contains(seat.getSeatId())) {
+                        iterator.remove();
+                    }
+                }
+                Long currentTTL = redisTemplate.getExpire(redisKey);
+
+                redisTemplate.opsForValue().set(redisKey, availableSeats);
+                redisTemplate.expire(redisKey, Duration.ofSeconds(currentTTL));
+            }
+            redisTemplate.delete(tempTicketId);
+        }catch(Exception e){
+            e.printStackTrace();
         }
-        if(!tempTicket.getStatus()){
-            throw new RuntimeException("NotPaid");
-        }
-        Showtime showtime = showtimeRepository.findById(tempTicket.getShowtimeId())
-                .orElseThrow(() -> new RuntimeException("Showtime not found"));
-        User user = userRepository.findById(tempTicket.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        saveBookedSeats(ticket, listSeatId);
 
-        // Tạo vé chính thức
-        Ticket ticket = new Ticket();
-        ticket.setUser(user);
-        ticket.setShowtime(showtime);
-        ticket.setTotalPrice(tempTicket.getTotalPrice());
-        ticket.setPaymentStatus("SUCCESS"); // Đã thanh toán
-        ticket.setBookingTime(LocalDateTime.now());        ticket.setPaid(tempTicket.getStatus());
-        ticket = ticketRepository.save(ticket);
-
-        // Xác nhận đặt vé và cập nhật trạng thái ghế thành "BOOKED" với TTL
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime endTime = LocalDateTime.of(showtime.getDate(),showtime.getEndTime());
-        long ttlSeconds = Duration.between(now, endTime).getSeconds();
-        confirmSeatsBooking(tempTicket.getSeatIds(),ttlSeconds);
-
-        // Lưu thông tin ghế đã đặt vào cơ sở dữ liệu
-        saveBookedSeats(ticket, tempTicket.getSeatIds());
-
-        // Xóa vé tạm thời khỏi Redis
-        redisTemplate.delete(TEMP_TICKET_KEY_PREFIX + tempTicketId);
-
-        //Map DTO
         TicketDto ticketDto = mapper.map(ticket, TicketDto.class);
-        if(ticket.getUser()!=null) {
-            UserInfo userInfo=mapper.map(ticket.getUser(),UserInfo.class);
+        if (ticket.getUser() != null) {
+            UserInfo userInfo = mapper.map(ticket.getUser(), UserInfo.class);
             ticketDto.setUserInfo(userInfo);
         } else {
             ticketDto.setUserInfo(null);
         }
-        if(ticket.getShowtime()!=null){
-            ShowtimeDto showtimeDto=mapper.map(ticket.getShowtime(),ShowtimeDto.class);
-            if(ticket.getShowtime().getMovie() != null){
+        if (ticket.getShowtime() != null) {
+            ShowtimeDto showtimeDto = mapper.map(ticket.getShowtime(), ShowtimeDto.class);
+            if (ticket.getShowtime().getMovie() != null) {
                 MovieInfo movieInfo = mapper.map(ticket.getShowtime().getMovie(), MovieInfo.class);
                 showtimeDto.setMovieInfo(movieInfo);
-            }else {
+            } else {
                 showtimeDto.setMovieInfo(null);
             }
             if (ticket.getShowtime().getScreen() != null) {
@@ -160,29 +187,28 @@ public class TicketService {
                 showtimeDto.setScreen(null);
             }
             ticketDto.setShowtime(showtimeDto);
-        }else {
+        } else {
             ticketDto.setShowtime(null);
         }
         return ticketDto;
     }
 
-    public List<TicketDto> findAllByUserId(UUID userId){
-        List<Ticket> tickets=ticketRepository.findAllByUserId(userId);
-        //Map DTO
+    public List<TicketDto> findAllByUserId(UUID userId) {
+        List<Ticket> tickets = ticketRepository.findAllByUserId(userId);
         return tickets.stream().map(ticket -> {
-            TicketDto ticketDto=mapper.map(ticket, TicketDto.class);
-            if(ticket.getUser()!=null) {
-                UserInfo userInfo=mapper.map(ticket.getUser(),UserInfo.class);
+            TicketDto ticketDto = mapper.map(ticket, TicketDto.class);
+            if (ticket.getUser() != null) {
+                UserInfo userInfo = mapper.map(ticket.getUser(), UserInfo.class);
                 ticketDto.setUserInfo(userInfo);
             } else {
                 ticketDto.setUserInfo(null);
             }
-            if(ticket.getShowtime()!=null){
-                ShowtimeDto showtimeDto=mapper.map(ticket.getShowtime(),ShowtimeDto.class);
-                if(ticket.getShowtime().getMovie() != null){
+            if (ticket.getShowtime() != null) {
+                ShowtimeDto showtimeDto = mapper.map(ticket.getShowtime(), ShowtimeDto.class);
+                if (ticket.getShowtime().getMovie() != null) {
                     MovieInfo movieInfo = mapper.map(ticket.getShowtime().getMovie(), MovieInfo.class);
                     showtimeDto.setMovieInfo(movieInfo);
-                }else {
+                } else {
                     showtimeDto.setMovieInfo(null);
                 }
                 if (ticket.getShowtime().getScreen() != null) {
@@ -198,75 +224,75 @@ public class TicketService {
                     showtimeDto.setScreen(null);
                 }
                 ticketDto.setShowtime(showtimeDto);
-            }else {
+            } else {
                 ticketDto.setShowtime(null);
             }
             return ticketDto;
         }).collect(Collectors.toList());
     }
 
-// Phương thức giữ ghế với Redis và holdTime
-private List<Integer> holdSeats(List<Integer> seatIds, long holdTime) {
-    List<Integer> heldSeatIds = new ArrayList<>();
+    private List<Integer> holdSeats(List<Integer> seatIds, long holdTime, Integer showtimeId) {
+        List<Integer> heldSeatIds = new ArrayList<>();
 
-    for (Integer seatId : seatIds) {
-        String lockKey = "lock:" + SEAT_STATUS_KEY_PREFIX + seatId;
-        Boolean lockAcquired = redisTemplate.opsForValue().setIfAbsent(lockKey, "locked", 30, TimeUnit.SECONDS);
-        if (lockAcquired) {
-            try {
-                String seatKey = SEAT_STATUS_KEY_PREFIX + seatId;
+        for (Integer seatId : seatIds) {
+            String lockKey = "lock:" + SEAT_STATUS_KEY_PREFIX + seatId + "+" + showtimeId;
+            Boolean lockAcquired = redisTemplate.opsForValue().setIfAbsent(lockKey, "locked", 30, TimeUnit.SECONDS);
+            if (lockAcquired) {
+                try {
+                    String seatKey = SEAT_STATUS_KEY_PREFIX + seatId + "+" + showtimeId;
 //                String seatStatus = (String) redisTemplate.opsForValue().get(seatKey);
-                byte[] seatKeySerialized = redisTemplate.getStringSerializer().serialize(seatKey);
+                    byte[] seatKeySerialized = redisTemplate.getStringSerializer().serialize(seatKey);
 
-                // Lấy trạng thái ghế từ Redis
-                String seatStatus = (String) redisTemplate.execute((RedisCallback<String>) connection -> {
-                    byte[] seatStatusSerialized = connection.get(seatKeySerialized);
-                    return (seatStatusSerialized != null) ? redisTemplate.getStringSerializer().deserialize(seatStatusSerialized) : null;
-                });
+                    // Lấy trạng thái ghế từ Redis
+                    String seatStatus = redisTemplate.execute((RedisCallback<String>) connection -> {
+                        byte[] seatStatusSerialized = connection.get(seatKeySerialized);
+                        return (seatStatusSerialized != null) ? redisTemplate.getStringSerializer().deserialize(seatStatusSerialized) : null;
+                    });
 
-                if (seatStatus == null) {
-                    seatStatus = AVAILABLE_STATUS;
-                }
+                    if (seatStatus == null) {
+                        seatStatus = AVAILABLE_STATUS;
+                    }
 
-                if (BOOKED_STATUS.equals(seatStatus) || HOLD_STATUS.equals(seatStatus)) {
-                    throw new RuntimeException("Seat " + seatId + " is already booked or held.");
-                }
+                    if (BOOKED_STATUS.equals(seatStatus) || HOLD_STATUS.equals(seatStatus)) {
+                        throw new RuntimeException("Seat " + seatId + "in Show " + showtimeId + " is already booked or held.");
+                    }
 
 //                redisTemplate.opsForValue().set(seatKey, HOLD_STATUS, holdTime, TimeUnit.SECONDS);
-                // Đặt ghế vào trạng thái HOLD
-                redisTemplate.execute((RedisCallback<Object>) connection -> {
-                    connection.set(seatKeySerialized,
-                            redisTemplate.getStringSerializer().serialize(HOLD_STATUS));
-                    connection.expire(
-                            seatKeySerialized,
-                            holdTime
-                    );
-                    return null;
-                });
-                heldSeatIds.add(seatId);
-            } finally {
-                redisTemplate.delete(lockKey);  // Giải phóng khóa
+                    // Đặt ghế vào trạng thái HOLD
+                    redisTemplate.execute((RedisCallback<Object>) connection -> {
+                        connection.set(seatKeySerialized,
+                                redisTemplate.getStringSerializer().serialize(HOLD_STATUS));
+                        connection.expire(
+                                seatKeySerialized,
+                                holdTime
+                        );
+                        return null;
+                    });
+                    heldSeatIds.add(seatId);
+                } finally {
+                    redisTemplate.delete(lockKey);  // Giải phóng khóa
+                }
+            } else {
+                throw new RuntimeException("Unable to acquire lock for seat " + seatId);
             }
-        } else {
-            throw new RuntimeException("Unable to acquire lock for seat " + seatId);
+        }
+
+        return heldSeatIds;
+    }
+
+    //Lưu thông tin ghế đã đặt
+    public void saveBookedSeats(Ticket ticket, List<Integer> heldSeatIds) {
+        for (Integer seatId : heldSeatIds) {
+            BookedSeat bookedSeat = new BookedSeat();
+            bookedSeat.setTicket(ticket);
+            bookedSeat.setSeat(seatRepository.findById(seatId)
+                    .orElseThrow(() -> new RuntimeException("Seat not found")));
+            bookedSeatRepository.save(bookedSeat);
         }
     }
 
-    return heldSeatIds;
-}
-
-    //Lưu thông tin ghế đã đặt
-private void saveBookedSeats(Ticket ticket, List<Integer> heldSeatIds) {
-    for (Integer seatId : heldSeatIds) {
-        BookedSeat bookedSeat = new BookedSeat();
-        bookedSeat.setTicket(ticket);
-        bookedSeat.setSeat(seatRepository.findById(seatId)
-                .orElseThrow(() -> new RuntimeException("Seat not found")));
-        bookedSeatRepository.save(bookedSeat);
-    }
-}
     //Cập nhập trạng thái ghế đã đặt
-    private void confirmSeatsBooking(List<Integer> seatIds,long ttlSeconds) {
+    private void confirmSeatsBooking(List<Integer> seatIds, long ttlSeconds) {
 
         redisTemplate.execute((RedisCallback<Boolean>) connection -> {
             connection.multi();
@@ -280,15 +306,16 @@ private void saveBookedSeats(Ticket ticket, List<Integer> heldSeatIds) {
                         redisTemplate.getStringSerializer().serialize(seatStatusKey),
                         ttlSeconds
                 ); // Thiết lập TTL cho trạng thái BOOKED
-                Seat seat= seatRepository.findById(seatId)
-                        .orElseThrow(()-> new RuntimeException("Seat not found"));
-                seat.setSeatStatus(BOOKED_STATUS);
+                Seat seat = seatRepository.findById(seatId)
+                        .orElseThrow(() -> new RuntimeException("Seat not found"));
+//                seat.setSeatStatus(BOOKED_STATUS);
                 seat.setUpdatedAt(LocalDateTime.now());
             }
             connection.exec();
             return true;
         });
     }
+
     //Tính tổng giá
     private BigDecimal calculateTotalPrice(List<Integer> seatIds, String discountCode) {
         List<Seat> seats = seatRepository.findAllById(seatIds);
@@ -308,15 +335,49 @@ private void saveBookedSeats(Ticket ticket, List<Integer> heldSeatIds) {
         }
         return totalPrice;
     }
-    public TempTicket getTempTicketInfo(String id){
+
+    public TempTicket getTempTicketInfo(String id) {
         return (TempTicket) redisTemplate.opsForValue().get(id);
     }
-    public void updateStatus(String id){
-        TempTicket tempTicket= (TempTicket) redisTemplate.opsForValue().get(id);
+
+    public void updateStatus(String id) {
+        TempTicket tempTicket = (TempTicket) redisTemplate.opsForValue().get(id);
         tempTicket.setStatus(true);
-        redisTemplate.opsForValue().set(id,tempTicket);
+        redisTemplate.opsForValue().set(id, tempTicket);
 
     }
+    public List<SeatDto> getAvailableSeatsByShowtime(Integer showtimeId,long ttlSeconds) {
+        String showtimeid = String.valueOf(showtimeId);
+        List<SeatDto> availableSeats = null;
+        try {
+            availableSeats=(List<SeatDto>) redisTemplate.opsForValue().get(showtimeid);
+        }catch (RedisConnectionFailureException e){
+                //removeSeatsCache(showtimeId);
+            System.err.println("Lỗi khi truy cập Redis: " + e.getMessage());
+        }
+
+        if (availableSeats == null) {
+            List<Seat> seats = seatRepository.findAvailableSeatsByShowtime(showtimeId);
+            availableSeats = seats.stream()
+                    .map(seat -> mapper.map(seat, SeatDto.class))
+                    .collect(Collectors.toList());
+            try {
+                redisTemplate.opsForValue().set(showtimeid, availableSeats, Duration.ofSeconds(ttlSeconds));
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+
+        return availableSeats;
+    }
+
+
+    // Xóa danh sách ghế trong cache khi có thay đổi đặt ghế
+    public void removeSeatsCache(Integer showtimeId) {
+        String redisKey = String.valueOf(showtimeId);
+        redisTemplate.delete(redisKey);
+    }
+
     public boolean isRedisAlive() {
         try {
             // Gửi lệnh PING đến Redis

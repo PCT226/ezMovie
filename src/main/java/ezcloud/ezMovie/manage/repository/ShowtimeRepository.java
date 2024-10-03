@@ -18,11 +18,15 @@ public interface ShowtimeRepository extends JpaRepository<Showtime,Integer> {
     // Tìm các suất chiếu sau ngày hiện tại
     List<Showtime> findByDateAfterAndIsDeletedFalse(LocalDate date);
 
-    @Query("SELECT s FROM Showtime s WHERE s.date = :nowDate AND s.startTime <= :nowTime AND s.endTime >= :nowTime")
-    List<Showtime> findShowtimesByDateAndTime(@Param("nowDate") LocalDate nowDate, @Param("nowTime") LocalTime nowTime);
-
+    @Query("SELECT s FROM Showtime s WHERE s.date = :nowDate AND s.endTime < :nowTime")
+    List<Showtime> findShowtimeByDateEqualsAndEndTimeBefore(
+            @Param("nowDate") LocalDate nowDate,
+            @Param("nowTime") LocalTime nowTime
+    );
     List<Showtime> findByMovieIdAndDateAndStartTimeAfterAndIsDeletedFalse(Integer movieId, LocalDate date, LocalTime startTime);
 
     // Tìm các suất chiếu của bộ phim sau ngày hiện tại
     List<Showtime> findByMovieIdAndDateAfterAndIsDeletedFalse(Integer movieId, LocalDate date);
+
+    List<Showtime> findAllByScreenIdAndDate(Integer screen_id, LocalDate date);
 }

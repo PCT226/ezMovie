@@ -3,6 +3,8 @@ package ezcloud.ezMovie.booking.controller;
 import ezcloud.ezMovie.booking.model.dto.TicketDto;
 import ezcloud.ezMovie.booking.model.payload.BookingRequestDTO;
 import ezcloud.ezMovie.booking.service.TicketService;
+import ezcloud.ezMovie.manage.model.dto.SeatDto;
+import ezcloud.ezMovie.manage.model.enities.Seat;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -47,24 +49,7 @@ public class TicketController {
         }
     }
 
-    @Operation(summary = "Book tickets", description = "Place a booking for the given tickets.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Booking successful"),
-            @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
-            @ApiResponse(responseCode = "404", description = "Showtime or seats not found"),
-            @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
-    @PostMapping("/confirm-booking/{tempId}")
-    public ResponseEntity<?> confirmBooking(@PathVariable String tempId) {
-        try {
-            TicketDto ticketDto = ticketService.confirmBooking(tempId);
-            return ResponseEntity.ok(ticketDto);
-        }catch (RuntimeException e){
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
-        }catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
-        }
-    }
+
     @Operation(summary = "Book tickets", description = "Place a booking for the given tickets.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Booking successful"),
@@ -81,4 +66,15 @@ public class TicketController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         }
     }
+//
+//    @GetMapping("/getAvalSeat/{id}")
+//    public ResponseEntity<?> getAvalSeat(@PathVariable Integer id) {
+//        try {
+//            List<SeatDto> tickets = ticketService.getAvailableSeatsByShowtime(id);
+//            return ResponseEntity.ok(tickets);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+//        }
+//    }
 }

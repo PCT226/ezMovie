@@ -1,11 +1,15 @@
 package ezcloud.ezMovie.payment.service;
 
+import ezcloud.ezMovie.booking.model.dto.TempTicket;
 import ezcloud.ezMovie.booking.model.enities.Ticket;
+import ezcloud.ezMovie.manage.model.enities.Showtime;
+import ezcloud.ezMovie.manage.repository.ShowtimeRepository;
 import ezcloud.ezMovie.payment.config.VNPAYConfig;
 import ezcloud.ezMovie.booking.repository.TicketRepository;
 import ezcloud.ezMovie.booking.service.TicketService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.UnsupportedEncodingException;
@@ -13,6 +17,7 @@ import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -23,16 +28,21 @@ public class VNPAYService {
     private TicketRepository ticketRepository;
     @Autowired
     private TicketService ticketService;
+    @Autowired
+    private ShowtimeRepository showtimeRepository;
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+
     private String orderId;
 
     public Map<String, String> submitOrder(HttpServletRequest request, String id, String orderInfo) {
         String baseUrl = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
 
-        int orderTotal = ticketService.getTempTicketInfo(id).getTotalPrice().intValue();
-
+        //int orderTotal = ticketService.getTempTicketInfo(id).getTotalPrice().intValue();
+        int orderTotal = ticketRepository.getTicketById(UUID.fromString(id)).getTotalPrice().intValue();
         String vnpayUrl = createOrder(request, orderTotal, orderInfo, baseUrl);
 
-        // Ticket ticket = saveOrder(BigDecimal.valueOf(orderTotal),orderInfo);
+        saveOrder(id,orderInfo);
         orderId = id;
         Map<String, String> response = new HashMap<>();
         response.put("paymentUrl", vnpayUrl);
@@ -57,10 +67,12 @@ public class VNPAYService {
 
         if (paymentStatus == 1) {
             // Nếu thanh toán thành công, cập nhật isPaid = true
-            //updatePaymentStatus(orderId);
-            ticketService.updateStatus(orderId);
+            updatePaymentStatus(UUID.fromString(orderId));
             ticketService.confirmBooking(orderId);
-            saveOrder(orderInfo);
+//            ticketService.removeSeatsCache(showtimeId);
+//            ticketService.getAvailableSeatsByShowtime(showtimeId,ttlSeconds);
+            //ticketService.updateStatus(orderId);
+            //saveOrder(orderInfo);
             response.put("message", "Payment Success");
             response.put("status", "success");
         } else {
@@ -167,16 +179,28 @@ public class VNPAYService {
 
 
 
-    public Ticket saveOrder(String orderInfo) {
-        Ticket ticket = new Ticket();
-        ticket.setOrderInfo(orderInfo);
-        ticket.setCreatedAt(LocalDateTime.now());
-        ticket.setUpdatedAt(null);  // Chưa cập nhật
+    public void saveOrder(String id, String orderInfo) {
 
-        return ticketRepository.save(ticket);
+        Optional<Ticket> ticketOpt = ticketRepository.findById(UUID.fromString(id));
+
+        if (ticketOpt.isPresent()) {
+            Ticket ticket = ticketOpt.get();
+            ticket.setOrderInfo(orderInfo);
+            ticket.setPaid(false);
+            ticketRepository.save(ticket);
+        }
     }
-    public void updatePaymentStatus(UUID revenueId) {
 
+    public void updatePaymentStatus(UUID revenueId) {
+        Optional<Ticket> ticketOpt = ticketRepository.findById(revenueId);
+
+        if (ticketOpt.isPresent()) {
+            Ticket ticket = ticketOpt.get();
+            ticket.setPaymentStatus("CONFIRMED");
+            ticket.setUpdatedAt(LocalDateTime.now());
+            ticket.setPaid(true);
+            ticketRepository.save(ticket);
+        }
     }
 
 

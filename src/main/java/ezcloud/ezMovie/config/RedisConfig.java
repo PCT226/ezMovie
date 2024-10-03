@@ -22,23 +22,19 @@ import java.time.Duration;
 @EnableCaching
 public class RedisConfig {
     @Bean
-    public LettuceConnectionFactory lettuceConnectionFactory(){
-        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration("localhost",6379);
-        return new LettuceConnectionFactory(config);
+    public LettuceConnectionFactory lettuceConnectionFactory() {
+        // Cấu hình cho kết nối đến Redis
+        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration("localhost", 6379);
+
+        // Tạo LettuceConnectionFactory với cấu hình đã định nghĩa
+        LettuceConnectionFactory connectionFactory = new LettuceConnectionFactory(config);
+
+        // Tắt tự động kết nối lại
+        connectionFactory.setShareNativeConnection(false);
+
+        return connectionFactory;
     }
-//    @Bean
-//    public RedisTemplate<String, Object> redisTemplate(LettuceConnectionFactory redisConnectionFactory) {
-//        RedisTemplate<String, Object> template = new RedisTemplate<>();
-//        template.setConnectionFactory(redisConnectionFactory);
-//
-//        // Sử dụng StringRedisSerializer cho khóa
-//        template.setKeySerializer(new StringRedisSerializer());
-//
-//        // Sử dụng Jackson serializer cho giá trị
-//        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
-//
-//        return template;
-//    }
+
 @Bean
 public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
     RedisTemplate<String, Object> template = new RedisTemplate<>();

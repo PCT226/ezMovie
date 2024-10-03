@@ -28,7 +28,7 @@ public class Seat {
     private String seatNumber;
     @Column(nullable = false)
     private BigDecimal price;
-    private String seatStatus;
+//    private String seatStatus;
     @Column(nullable = false,updatable = false)
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

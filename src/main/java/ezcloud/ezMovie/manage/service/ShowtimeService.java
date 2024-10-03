@@ -13,16 +13,12 @@ import ezcloud.ezMovie.manage.repository.MovieRepository;
 import ezcloud.ezMovie.manage.repository.ScreenRepository;
 import ezcloud.ezMovie.manage.repository.ShowtimeRepository;
 import org.modelmapper.ModelMapper;
-import org.quartz.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
-import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -112,13 +108,19 @@ public class ShowtimeService {
     }
 
 
-    public ShowtimeDto createShowtime(CreateShowtimeRequest request) throws SchedulerException {
+    public ShowtimeDto createShowtime(CreateShowtimeRequest request) {
         Movie movie = movieRepository.findById(request.getMovieId())
                 .orElseThrow(() -> new RuntimeException("Movie not found"));
-        mapper.map(movie, MovieInfo.class);
         Screen screen = screenRepository.findById(request.getScreenId())
                 .orElseThrow(() -> new RuntimeException("Screen not found"));
-//        Showtime showtime= new Showtime(0,movie,screen,request.getDate(),request.getStartTime(),request.getEndTime(), LocalDateTime.now(),LocalDateTime.now(),false);
+
+        List<Showtime> existingShowtimes = showtimeRepository.findAllByScreenIdAndDate(request.getScreenId(),request.getDate());
+        for (Showtime existingShowtime : existingShowtimes) {
+            if (isTimeConflict(existingShowtime, request)) {
+                throw new RuntimeException("Showtime conflict detected");
+            }
+        }
+
         Showtime showtime = new Showtime();
         showtime.setDate(request.getDate());
         showtime.setMovie(movie);
@@ -129,9 +131,18 @@ public class ShowtimeService {
         showtime.setUpdatedAt(LocalDateTime.now());
 
         showtime = showtimeRepository.save(showtime);
-        //scheduleUpdateSeatStatusJob(showtime);
         return mapper.map(showtime, ShowtimeDto.class);
     }
+
+    private boolean isTimeConflict(Showtime existingShowtime, CreateShowtimeRequest request) {
+        LocalTime newStartTime = request.getStartTime().toLocalTime();
+        LocalTime newEndTime = request.getEndTime().toLocalTime();
+        LocalTime existingStartTime = existingShowtime.getStartTime();
+        LocalTime existingEndTime = existingShowtime.getEndTime();
+
+        return (newStartTime.isBefore(existingEndTime) && newEndTime.isAfter(existingStartTime));
+    }
+
 
     public ShowtimeDto updateShowtime(UpdateShowtimeRq rq) {
         Showtime showtime = showtimeRepository.findById(rq.getShowtimeId())
@@ -160,11 +171,11 @@ public class ShowtimeService {
         showtimeRepository.save(showtime);
     }
 
-    public List<Showtime> getShowtimeNow() {
+    public List<Showtime> getShowtimeOutTime() {
         LocalDate nowDate = LocalDate.now();
         LocalTime nowTime = LocalTime.now();
 
-        List<Showtime> todayUpcoming = showtimeRepository.findShowtimesByDateAndTime(nowDate,nowTime);
+        List<Showtime> todayUpcoming = showtimeRepository.findShowtimeByDateEqualsAndEndTimeBefore(nowDate,nowTime);
 
         return todayUpcoming;
     }

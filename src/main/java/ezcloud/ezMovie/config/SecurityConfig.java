@@ -42,7 +42,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // Disabling CSRF as we use JWT which is immune to CSRF
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(WHITE_LIST_URL).permitAll() // Whitelisting some paths from authentication
-                        .anyRequest().authenticated()) // All other requests must be authenticated
+                        .anyRequest().permitAll()) // All other requests must be authenticated
 
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless session management

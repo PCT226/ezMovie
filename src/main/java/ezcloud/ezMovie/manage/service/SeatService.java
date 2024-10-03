@@ -41,18 +41,18 @@ public class SeatService {
         return seats.stream().map(seat -> {
 //            String seatStatusKey = SEAT_STATUS_KEY_PREFIX + seat.getId();
 //            String seatStatus = redisTemplate.opsForValue().get(seatStatusKey);
-            String status= seat.getSeatStatus();
-
-            if ( status == null) {
-                status = "AVAILABLE"; // Mặc định là AVAILABLE nếu không có trong Redis
-            }
+//            String status= seat.getSeatStatus();
+//
+//            if ( status == null) {
+//                status = "AVAILABLE"; // Mặc định là AVAILABLE nếu không có trong Redis
+//            }
 
             // Tạo SeatDTO để trả về cho frontend
             SeatDto seatDTO = new SeatDto();
             seatDTO.setSeatId(seat.getId());
             seatDTO.setSeatNumber(seat.getSeatNumber());
             seatDTO.setPrice(seat.getPrice());
-            seatDTO.setStatus(status);
+//            seatDTO.setStatus(status);
 
             return seatDTO;
         }).collect(Collectors.toList());
@@ -66,7 +66,7 @@ public class SeatService {
         seat.setSeatNumber(request.getSeatNumber());
         seat.setPrice(request.getPrice());
         seat.setScreen(screen);
-        seat.setSeatStatus("AVAILABLE");
+//        seat.setSeatStatus("AVAILABLE");
         Seat savedSeat = seatRepository.save(seat);
 
         // Cập nhật trạng thái ghế trong Redis khi tạo mới ghế
@@ -110,17 +110,17 @@ public class SeatService {
             List<Seat> seats = seatRepository.findAllByScreenIdAndIsDeletedFalse(showtime.getScreen().getId());
 
             // 2. Cập nhật trạng thái ghế sang AVAILABLE
-            for (Seat seat : seats) {
-                if(seat.getSeatStatus().equals("BOOKED")) {
-                    seat.setSeatStatus("AVAILABLE");
-                    seat.setUpdatedAt(LocalDateTime.now());
-                    seatRepository.save(seat);
-
-                    // Cập nhật Redis (nếu bạn sử dụng Redis để lưu trữ trạng thái ghế)
-                    String redisKey = SEAT_STATUS_KEY_PREFIX + seat.getId();
-                    redisTemplate.opsForValue().set(redisKey, "AVAILABLE");
-                }
-            }
+//            for (Seat seat : seats) {
+//                if(seat.getSeatStatus().equals("BOOKED")) {
+//                    seat.setSeatStatus("AVAILABLE");
+//                    seat.setUpdatedAt(LocalDateTime.now());
+//                    seatRepository.save(seat);
+//
+//                    // Cập nhật Redis (nếu bạn sử dụng Redis để lưu trữ trạng thái ghế)
+//                    String redisKey = SEAT_STATUS_KEY_PREFIX + seat.getId();
+//                    redisTemplate.opsForValue().set(redisKey, "AVAILABLE");
+//                }
+//            }
         }
     }
 }
