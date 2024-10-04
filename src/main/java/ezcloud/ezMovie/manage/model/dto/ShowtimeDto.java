@@ -11,6 +11,7 @@ import java.time.LocalTime;
 @Getter
 @Setter
 public class ShowtimeDto {
+    private Integer showtimeId;
     private LocalDate date;
     private LocalTime startTime;
     private LocalTime endTime;

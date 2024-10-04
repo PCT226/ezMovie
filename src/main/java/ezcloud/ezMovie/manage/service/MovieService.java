@@ -5,8 +5,10 @@ import ezcloud.ezMovie.manage.model.dto.MovieInfo;
 import ezcloud.ezMovie.manage.model.enities.Movie;
 import ezcloud.ezMovie.manage.repository.MovieRepository;
 import ezcloud.ezMovie.specification.MovieSpecification;
+import org.hibernate.annotations.Cache;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -21,11 +23,13 @@ public class MovieService {
     private MovieRepository movieRepository;
     @Autowired
     private ModelMapper mapper;
+    @Cacheable(value = "movies",key = "'allMovie'")
     public List<MovieInfo> findAll(){
         List<Movie> movies=movieRepository.findAllByIsDeletedFalse();
         return movies.stream().map(movie -> mapper.map(movie, MovieInfo.class))
                 .collect(Collectors.toList());
     }
+    @Cacheable(value = "movies")
     public MovieInfo findById(int id){
         Movie movie= movieRepository.findById(id)
                 .orElseThrow(()-> new MovieNotFound("Not found Movie with ID: "+id));

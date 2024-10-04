@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -31,14 +33,14 @@ public class ShowtimeController {
     public ResponseEntity<List<ShowtimeDto>> getAll(){
         return ResponseEntity.ok(showtimeService.getUpcomingShowtimes());
     }
-    @GetMapping("/{movieId}")
+    @GetMapping("/findShowtime")
     @Operation(summary = "Get all showtime available for movie", description = "Retrieve a list of all showtime available for movie")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Danh sách lịch chiếu của phim được lấy thành công."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi lấy danh sách lịch chiếu phim.")
     })
-    public ResponseEntity<List<ShowtimeDto>> getAll(@PathVariable Integer movieId){
-        return ResponseEntity.ok(showtimeService.getUpcomingShowtimesForMovie(movieId));
+    public ResponseEntity<List<ShowtimeDto>> getAll(@RequestParam Integer movieId,@RequestParam(required = false) Integer cinemaId ,@RequestParam(required = false) LocalDate date){
+        return ResponseEntity.ok(showtimeService.getUpcomingShowtimesForMovie(movieId,cinemaId,date));
     }
 
 

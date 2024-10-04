@@ -1,5 +1,9 @@
 package ezcloud.ezMovie.manage.service;
 
+import ezcloud.ezMovie.booking.model.enities.BookedSeat;
+import ezcloud.ezMovie.booking.model.enities.Ticket;
+import ezcloud.ezMovie.booking.repository.BookedSeatRepository;
+import ezcloud.ezMovie.booking.repository.TicketRepository;
 import ezcloud.ezMovie.manage.model.dto.SeatDto;
 import ezcloud.ezMovie.manage.model.enities.Screen;
 import ezcloud.ezMovie.manage.model.enities.Seat;
@@ -10,11 +14,14 @@ import ezcloud.ezMovie.manage.repository.ScreenRepository;
 import ezcloud.ezMovie.manage.repository.SeatRepository;
 import ezcloud.ezMovie.manage.repository.ShowtimeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,9 +33,53 @@ public class SeatService {
     @Autowired
     private ShowtimeRepository showtimeRepository;
     @Autowired
+    private TicketRepository ticketRepository;
+    @Autowired
+    private BookedSeatRepository bookedSeatRepository;
+    @Autowired
     private RedisTemplate<String, String> redisTemplate;
 
     private static final String SEAT_STATUS_KEY_PREFIX = "seat:status:";
+
+    //Lấy danh sách ghế với Showtime
+    @Cacheable(value = "listSeat",key = "#showtimeId")
+    public List<SeatDto> getSeatsByShowtimeId(Integer showtimeId) {
+        List<SeatDto> listSeat= new ArrayList<>();
+
+        Showtime showtime = showtimeRepository.findById(showtimeId)
+                .orElseThrow(() -> new RuntimeException("Not found Showtime"));
+        List<Seat> seats = seatRepository.findAllByScreenIdAndIsDeletedFalse(showtime.getScreen().getId());
+
+        // Lấy danh sách tất cả ghế từ screen
+        List<Seat> availableSeats = seatRepository.findAllByScreenIdAndIsDeletedFalse(showtime.getScreen().getId());
+
+        // Lấy danh sách ghế BOOKED theo showtime
+        List<BookedSeat> bookedSeats = bookedSeatRepository.findBookedSeatsByShowtimeId(showtimeId);
+
+        // Tạo danh sách ghế BOOKED
+        Set<Integer> bookedSeatIds = bookedSeats.stream()
+                .map(bookedSeat -> bookedSeat.getSeat().getId())
+                .collect(Collectors.toSet());
+
+        // Duyệt qua tất cả các ghế và phân loại theo trạng thái BOOKED hoặc AVAILABLE
+        for (Seat seat : availableSeats) {
+            SeatDto seatDto = new SeatDto();
+            seatDto.setSeatId(seat.getId());
+            seatDto.setSeatNumber(seat.getSeatNumber());
+            seatDto.setPrice(seat.getPrice());
+
+            // Nếu ghế có trong danh sách BOOKED thì set trạng thái "BOOKED", ngược lại là "AVAILABLE"
+            if (bookedSeatIds.contains(seat.getId())) {
+                seatDto.setStatus("BOOKED");
+            } else {
+                seatDto.setStatus("AVAILABLE");
+            }
+
+            listSeat.add(seatDto);
+        }
+
+        return listSeat;
+    }
 
     // Lấy danh sách ghế từ Screen
     public List<SeatDto> findAllByScreenId(int screenId) {

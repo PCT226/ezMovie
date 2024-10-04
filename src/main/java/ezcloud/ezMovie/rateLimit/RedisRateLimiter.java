@@ -34,11 +34,9 @@ private boolean tryConsumeToken(String key, int capacity, int refillTokens, int 
     if (!acquireLock(key)) {
         return false; // Không thể lấy lock, bỏ qua request
     }
-
     try {
         String bucketKey = BUCKET_PREFIX + key;
         Map<Object, Object> bucketData = redisTemplate.opsForHash().entries(bucketKey);
-
         long currentTime = System.currentTimeMillis() / 1000; // Thời gian hiện tại (giây)
 
         // Lấy giá trị "lastRefillTime" từ Redis hoặc gán giá trị hiện tại nếu không có
@@ -80,7 +78,6 @@ private boolean tryConsumeToken(String key, int capacity, int refillTokens, int 
         releaseLock(key);
     }
 }
-
 
     public boolean rateLimit(String key, int capacity, int refillTokens, int refillDuration) {
         return tryConsumeToken(key, capacity, refillTokens, refillDuration);

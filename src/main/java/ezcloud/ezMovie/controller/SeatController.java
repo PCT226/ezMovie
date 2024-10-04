@@ -31,6 +31,21 @@ public class SeatController {
     public ResponseEntity<List<SeatDto>> getAllByScreen(@PathVariable int id){
         return ResponseEntity.ok(seatService.findAllByScreenId(id));
     }
+    @GetMapping("/listSeat")
+    @Operation(summary = "Get all seats by showtimeId", description = "Retrieve a list seat for showtime")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Danh sách ghế được lấy thành công."),
+            @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi lấy danh sách ghế.")
+    })
+    public ResponseEntity<?> getAllByShowtime(@RequestParam Integer showtimeId) {
+        try {
+            return ResponseEntity.ok(seatService.getSeatsByShowtimeId(showtimeId));
+        } catch (RuntimeException ex) {
+            return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
+        } catch (Exception ex) {
+            return new ResponseEntity<>("Lỗi máy chủ khi thêm mới ghế", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
 
     @PostMapping("/")

@@ -10,4 +10,5 @@ public class SeatDto {
     private Integer seatId;
     private String seatNumber;
     private BigDecimal price;
+    private String status;
 }

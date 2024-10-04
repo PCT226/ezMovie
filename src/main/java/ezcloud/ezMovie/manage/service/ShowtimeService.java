@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -69,9 +71,10 @@ public class ShowtimeService {
         }).collect(Collectors.toList());
     }
 
-    public List<ShowtimeDto> getUpcomingShowtimesForMovie(Integer movieId) {
+    public List<ShowtimeDto> getUpcomingShowtimesForMovie(Integer movieId, Integer cinemaId, LocalDate date){
         LocalDate nowDate = LocalDate.now();
         LocalTime nowTime = LocalTime.now();
+
 
         // Tìm lịch chiếu của bộ phim theo ngày hiện tại nhưng giờ chiếu chưa bắt đầu
         List<Showtime> todayUpcoming = showtimeRepository.findByMovieIdAndDateAndStartTimeAfterAndIsDeletedFalse(movieId, nowDate, nowTime);
@@ -81,6 +84,16 @@ public class ShowtimeService {
 
         // Kết hợp cả hai danh sách
         todayUpcoming.addAll(futureShowtimes);
+        if (cinemaId != null) {
+            todayUpcoming = todayUpcoming.stream()
+                    .filter(showtime -> showtime.getScreen().getCinema().getId().equals(cinemaId))
+                    .collect(Collectors.toList());
+        }
+        if(date != null){
+            todayUpcoming = todayUpcoming.stream()
+                    .filter(showtime -> showtime.getDate().equals(date))
+                    .collect(Collectors.toList());
+        }
 
         return todayUpcoming.stream().map(showtime -> {
             ShowtimeDto showtimeDto = mapper.map(showtime, ShowtimeDto.class);
@@ -106,6 +119,8 @@ public class ShowtimeService {
 
         }).collect(Collectors.toList());
     }
+
+
 
 
     public ShowtimeDto createShowtime(CreateShowtimeRequest request) {
