@@ -41,34 +41,26 @@ public class SeatService {
 
     private static final String SEAT_STATUS_KEY_PREFIX = "seat:status:";
 
-    //Lấy danh sách ghế với Showtime
     @Cacheable(value = "listSeat",key = "#showtimeId")
     public List<SeatDto> getSeatsByShowtimeId(Integer showtimeId) {
         List<SeatDto> listSeat= new ArrayList<>();
 
         Showtime showtime = showtimeRepository.findById(showtimeId)
                 .orElseThrow(() -> new RuntimeException("Not found Showtime"));
-        List<Seat> seats = seatRepository.findAllByScreenIdAndIsDeletedFalse(showtime.getScreen().getId());
 
-        // Lấy danh sách tất cả ghế từ screen
         List<Seat> availableSeats = seatRepository.findAllByScreenIdAndIsDeletedFalse(showtime.getScreen().getId());
-
-        // Lấy danh sách ghế BOOKED theo showtime
         List<BookedSeat> bookedSeats = bookedSeatRepository.findBookedSeatsByShowtimeId(showtimeId);
 
-        // Tạo danh sách ghế BOOKED
         Set<Integer> bookedSeatIds = bookedSeats.stream()
                 .map(bookedSeat -> bookedSeat.getSeat().getId())
                 .collect(Collectors.toSet());
 
-        // Duyệt qua tất cả các ghế và phân loại theo trạng thái BOOKED hoặc AVAILABLE
         for (Seat seat : availableSeats) {
             SeatDto seatDto = new SeatDto();
             seatDto.setSeatId(seat.getId());
             seatDto.setSeatNumber(seat.getSeatNumber());
             seatDto.setPrice(seat.getPrice());
 
-            // Nếu ghế có trong danh sách BOOKED thì set trạng thái "BOOKED", ngược lại là "AVAILABLE"
             if (bookedSeatIds.contains(seat.getId())) {
                 seatDto.setStatus("BOOKED");
             } else {

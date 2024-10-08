@@ -2,6 +2,7 @@ package ezcloud.ezMovie.payment.service;
 
 import ezcloud.ezMovie.booking.model.dto.TempTicket;
 import ezcloud.ezMovie.booking.model.enities.Ticket;
+import ezcloud.ezMovie.manage.model.dto.SeatDto;
 import ezcloud.ezMovie.manage.model.enities.Showtime;
 import ezcloud.ezMovie.manage.repository.ShowtimeRepository;
 import ezcloud.ezMovie.payment.config.VNPAYConfig;
@@ -20,6 +21,7 @@ import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class VNPAYService {
@@ -50,6 +52,8 @@ public class VNPAYService {
     }
 
     public Map<String, Object> paymentCompleted(HttpServletRequest request) {
+        Ticket ticket = ticketRepository.findById(UUID.fromString(orderId))
+                .orElseThrow(() -> new RuntimeException("Ticket not found"));
         int paymentStatus = orderReturn(request);
         // Lấy thông tin từ request
         String orderInfo = request.getParameter("vnp_OrderInfo");
@@ -64,6 +68,26 @@ public class VNPAYService {
         response.put("totalPrice", totalPrice);
         response.put("paymentTime", paymentTime);
         response.put("transactionId", transactionId);
+
+        Integer showtimeId = ticket.getShowtime().getId();
+        Showtime showtime = showtimeRepository.findById(showtimeId)
+                .orElseThrow(() -> new RuntimeException("Showtime not found"));
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime endTime = LocalDateTime.of(showtime.getDate(),showtime.getEndTime());
+        long ttlSeconds = Duration.between(now, endTime).getSeconds();
+
+        List<SeatDto> availableSeats = ticketService.getTempTicketInfo(String.valueOf(showtimeId));
+
+        for (SeatDto seat : availableSeats) {
+            if (ticketService.getListSeatId().contains(seat.getSeatId())) {
+                if (paymentStatus == 1) {
+                    seat.setStatus("BOOKED");
+                } else {
+                    seat.setStatus("AVAILABLE");
+                }
+            }
+        }
+        redisTemplate.opsForValue().set("listSeat::" + showtimeId, availableSeats, ttlSeconds, TimeUnit.SECONDS);
 
         if (paymentStatus == 1) {
             // Nếu thanh toán thành công, cập nhật isPaid = true

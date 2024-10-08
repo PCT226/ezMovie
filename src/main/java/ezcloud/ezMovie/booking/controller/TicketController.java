@@ -1,5 +1,6 @@
 package ezcloud.ezMovie.booking.controller;
 
+import ezcloud.ezMovie.booking.model.dto.TempTicket;
 import ezcloud.ezMovie.booking.model.dto.TicketDto;
 import ezcloud.ezMovie.booking.model.payload.BookingRequestDTO;
 import ezcloud.ezMovie.booking.service.TicketService;

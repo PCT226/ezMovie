@@ -35,18 +35,20 @@ public class RedisConfig {
         return connectionFactory;
     }
 
-@Bean
-public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
-    RedisTemplate<String, Object> template = new RedisTemplate<>();
-    template.setConnectionFactory(connectionFactory);
+    @Bean
+    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory redisConnectionFactory) {
+        RedisTemplate<String, Object> template = new RedisTemplate<>();
+        template.setConnectionFactory(redisConnectionFactory);
 
-    // Sử dụng GenericJackson2JsonRedisSerializer thay vì Jackson2JsonRedisSerializer
-    GenericJackson2JsonRedisSerializer genericJackson2JsonRedisSerializer = new GenericJackson2JsonRedisSerializer();
+        // Sử dụng StringRedisSerializer cho key
+        template.setKeySerializer(new StringRedisSerializer());
 
-    template.setDefaultSerializer(genericJackson2JsonRedisSerializer);
+        // Sử dụng GenericJackson2JsonRedisSerializer cho value
+        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
 
-    return template;
-}
+        return template;
+    }
+
 
 
 
