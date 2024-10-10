@@ -24,9 +24,8 @@ public class QuartzConfig {
 
     @Bean
     public Trigger showtimeJobTrigger() {
-        // Thiết lập cron expression để chạy job vào lúc 23:59 mỗi ngày
-        //String cronExpression = "0 59 23 * * ?";
-        String cronExpression = "0 45 10 * * ?";
+        String cronExpression = "0 59 23 * * ?";
+        //String cronExpression = "0 45 10 * * ?";
 
         return TriggerBuilder.newTrigger()
                 .forJob(showtimeJobDetail())

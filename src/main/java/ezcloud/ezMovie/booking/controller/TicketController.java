@@ -42,15 +42,12 @@ public class TicketController {
             );
             return ResponseEntity.ok(ticket);
         } catch (RuntimeException e) {
-            // Xử lý lỗi và trả về thông báo lỗi
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
-            // Xử lý lỗi không mong muốn
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
         }
     }
-
-
+    
     @Operation(summary = "Book tickets", description = "Place a booking for the given tickets.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Booking successful"),
@@ -67,15 +64,4 @@ public class TicketController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         }
     }
-//
-//    @GetMapping("/getAvalSeat/{id}")
-//    public ResponseEntity<?> getAvalSeat(@PathVariable Integer id) {
-//        try {
-//            List<SeatDto> tickets = ticketService.getAvailableSeatsByShowtime(id);
-//            return ResponseEntity.ok(tickets);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
-//        }
-//    }
 }

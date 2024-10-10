@@ -43,6 +43,16 @@ services:
     depends_on:
       - elasticsearch
       - kibana
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./src/main/resources/prometheus.yml:/etc/prometheus/prometheus.yml  # Mapping file cấu hình
+    ports:
+      - "9090:9090"  # Mở cổng 9090 cho Prometheus
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"  # Mở cổng 3000 cho Grafana
 
 volumes:
   esdata:

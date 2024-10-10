@@ -1,0 +1,8 @@
+global:
+  scrape_interval: 15s  # Tần suất Prometheus lấy dữ liệu
+
+scrape_configs:
+  - job_name: 'spring-boot-app'  # Tên job (tùy chọn)
+    metrics_path: '/actuator/prometheus'  # Đường dẫn đến metrics
+    static_configs:
+      - targets: ['host.docker.internal:8080']  # Địa chỉ của ứng dụng Spring Boot

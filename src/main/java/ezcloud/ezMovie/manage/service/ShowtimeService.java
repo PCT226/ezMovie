@@ -39,11 +39,8 @@ public class ShowtimeService {
         LocalDate nowDate = LocalDate.now();
         LocalTime nowTime = LocalTime.now();
 
-        // Tìm lịch chiếu trong ngày hiện tại nhưng giờ chiếu chưa bắt đầu
         List<Showtime> todayUpcoming = showtimeRepository.findByDateAndStartTimeAfterAndIsDeletedFalse(nowDate, nowTime);
-        // Tìm lịch chiếu của ngày sau ngày hiện tại
         List<Showtime> futureShowtimes = showtimeRepository.findByDateAfterAndIsDeletedFalse(nowDate);
-        // Kết hợp cả hai danh sách
         todayUpcoming.addAll(futureShowtimes);
 
         return todayUpcoming.stream().map(showtime -> {
@@ -75,15 +72,10 @@ public class ShowtimeService {
         LocalDate nowDate = LocalDate.now();
         LocalTime nowTime = LocalTime.now();
 
-
-        // Tìm lịch chiếu của bộ phim theo ngày hiện tại nhưng giờ chiếu chưa bắt đầu
         List<Showtime> todayUpcoming = showtimeRepository.findByMovieIdAndDateAndStartTimeAfterAndIsDeletedFalse(movieId, nowDate, nowTime);
-
-        // Tìm lịch chiếu của bộ phim của các ngày sau ngày hiện tại
         List<Showtime> futureShowtimes = showtimeRepository.findByMovieIdAndDateAfterAndIsDeletedFalse(movieId, nowDate);
-
-        // Kết hợp cả hai danh sách
         todayUpcoming.addAll(futureShowtimes);
+
         if (cinemaId != null) {
             todayUpcoming = todayUpcoming.stream()
                     .filter(showtime -> showtime.getScreen().getCinema().getId().equals(cinemaId))
@@ -120,9 +112,6 @@ public class ShowtimeService {
         }).collect(Collectors.toList());
     }
 
-
-
-
     public ShowtimeDto createShowtime(CreateShowtimeRequest request) {
         Movie movie = movieRepository.findById(request.getMovieId())
                 .orElseThrow(() -> new RuntimeException("Movie not found"));
@@ -157,7 +146,6 @@ public class ShowtimeService {
 
         return (newStartTime.isBefore(existingEndTime) && newEndTime.isAfter(existingStartTime));
     }
-
 
     public ShowtimeDto updateShowtime(UpdateShowtimeRq rq) {
         Showtime showtime = showtimeRepository.findById(rq.getShowtimeId())

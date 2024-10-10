@@ -7,6 +7,7 @@ import ezcloud.ezMovie.auth.model.payload.JwtResponse;
 import ezcloud.ezMovie.auth.model.payload.LoginRequest;
 import ezcloud.ezMovie.auth.model.payload.RegisterRequest;
 import ezcloud.ezMovie.auth.service.AuthService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import ezcloud.ezMovie.jwt.JwtService;
 import ezcloud.ezMovie.auth.model.payload.ChangePasswordRequest;
@@ -23,14 +24,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
 
 
 @RestController
