@@ -3,6 +3,7 @@ package ezcloud.ezMovie.payment.service;
 import ezcloud.ezMovie.booking.model.dto.TempTicket;
 import ezcloud.ezMovie.booking.model.enities.Ticket;
 import ezcloud.ezMovie.manage.model.dto.SeatDto;
+import ezcloud.ezMovie.manage.model.enities.Response;
 import ezcloud.ezMovie.manage.model.enities.Showtime;
 import ezcloud.ezMovie.manage.repository.ShowtimeRepository;
 import ezcloud.ezMovie.payment.config.VNPAYConfig;
@@ -12,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.webjars.NotFoundException;
 
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
@@ -35,23 +37,19 @@ public class VNPAYService {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
-    private String orderId;
-
-    public Map<String, String> submitOrder(HttpServletRequest request, String id, String orderInfo) {
+    public Response<String> submitOrder(HttpServletRequest request, String id, String orderInfo) {
         String baseUrl = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
-
-        //int orderTotal = ticketService.getTempTicketInfo(id).getTotalPrice().intValue();
         int orderTotal = ticketRepository.getTicketById(UUID.fromString(id)).getTotalPrice().intValue();
         String vnpayUrl = createOrder(request, orderTotal, orderInfo, baseUrl);
 
-        saveOrder(id,orderInfo);
-        orderId = id;
-        Map<String, String> response = new HashMap<>();
-        response.put("paymentUrl", vnpayUrl);
-        return response;
+        saveOrder(id, orderInfo);
+        request.setAttribute("orderId", id);
+        return new Response<>(0, vnpayUrl);
     }
 
-    public Map<String, Object> paymentCompleted(HttpServletRequest request) {
+
+    public Response<Map<String, Object>> paymentCompleted(HttpServletRequest request) {
+        String orderId = (String) request.getAttribute("orderId");
         Ticket ticket = ticketRepository.findById(UUID.fromString(orderId))
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
         int paymentStatus = orderReturn(request);
@@ -79,7 +77,7 @@ public class VNPAYService {
         List<SeatDto> availableSeats = ticketService.getTempTicketInfo(String.valueOf(showtimeId));
 
         for (SeatDto seat : availableSeats) {
-            if (ticketService.getListSeatId().contains(seat.getSeatId())) {
+            if (ticketService.getSeatIdsFromRedis(orderId).contains(seat.getSeatId())) {
                 if (paymentStatus == 1) {
                     seat.setStatus("BOOKED");
                 } else {
@@ -88,7 +86,7 @@ public class VNPAYService {
             }
         }
         redisTemplate.opsForValue().set("listSeat::" + showtimeId, availableSeats, ttlSeconds, TimeUnit.SECONDS);
-
+        int resCode ;
         if (paymentStatus == 1) {
             // Nếu thanh toán thành công, cập nhật isPaid = true
             updatePaymentStatus(UUID.fromString(orderId));
@@ -99,12 +97,14 @@ public class VNPAYService {
             //saveOrder(orderInfo);
             response.put("message", "Payment Success");
             response.put("status", "success");
+            resCode = 0;
         } else {
             response.put("message", "Payment Failed");
             response.put("status", "failed");
+            resCode = 1;
         }
 
-        return response;
+        return new Response<>(resCode, response);
     }
 
     public String createOrder(HttpServletRequest request, int amount, String orderInfor, String urlReturn) {
@@ -138,7 +138,7 @@ public class VNPAYService {
         String vnp_CreateDate = formatter.format(cld.getTime());
         vnp_Params.put("vnp_CreateDate", vnp_CreateDate);
 
-        cld.add(Calendar.MINUTE, 15);
+        cld.add(Calendar.MINUTE, 10);
         String vnp_ExpireDate = formatter.format(cld.getTime());
         vnp_Params.put("vnp_ExpireDate", vnp_ExpireDate);
 
@@ -212,6 +212,8 @@ public class VNPAYService {
             ticket.setOrderInfo(orderInfo);
             ticket.setPaid(false);
             ticketRepository.save(ticket);
+        }else {
+            throw new NotFoundException("Not found ticket");
         }
     }
 

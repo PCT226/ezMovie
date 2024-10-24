@@ -13,6 +13,7 @@ import ezcloud.ezMovie.booking.model.enities.Ticket;
 import ezcloud.ezMovie.booking.repository.BookedSeatRepository;
 import ezcloud.ezMovie.booking.repository.DiscountRepository;
 import ezcloud.ezMovie.booking.repository.TicketRepository;
+import ezcloud.ezMovie.exception.TicketHeldException;
 import ezcloud.ezMovie.manage.model.dto.*;
 import ezcloud.ezMovie.manage.model.enities.Seat;
 import ezcloud.ezMovie.manage.model.enities.Showtime;
@@ -54,8 +55,6 @@ public class TicketService {
     private ModelMapper mapper;
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
-    @Getter
-    private List<Integer> listSeatId;
     @Transactional
     public String reserveSeats(UUID userId, Integer showtimeId, List<Integer> seatIds, String discountCode) throws Exception {
 
@@ -63,7 +62,9 @@ public class TicketService {
                 .orElseThrow(() -> new RuntimeException("Showtime not found"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
+        if(seatIds.isEmpty()){
+            throw new RuntimeException("Seat not found");
+        }
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime endTime = LocalDateTime.of(showtime.getDate(),showtime.getEndTime());
         long ttlSeconds = Duration.between(now, endTime).getSeconds();
@@ -75,14 +76,12 @@ public class TicketService {
                 if ("AVAILABLE".equals(seat.getStatus())) {
                     seat.setStatus("HOLD");
                 }else{
-                    throw new RuntimeException("Vé đã được đặt hoặc giữ");
+                    throw new TicketHeldException("Tickets have been booked or held");
                 }
             }
         }
         redisTemplate.opsForValue().set("listSeat::"+showtimeId, availableSeats);
         redisTemplate.expire("listSeat::"+showtimeId, ttlSeconds, TimeUnit.SECONDS);
-
-        listSeatId = seatIds;
         // Tính toán tổng tiền
         BigDecimal totalPrice = calculateTotalPrice(seatIds, discountCode);
         Ticket ticket = new Ticket();
@@ -114,7 +113,7 @@ public class TicketService {
     public TicketDto confirmBooking(String tempTicketId) {
         Ticket ticket = ticketRepository.findById(UUID.fromString(tempTicketId))
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
-
+        List<Integer>  listSeatId= getSeatIdsFromRedis(tempTicketId);
 
         saveBookedSeats(ticket, listSeatId);
 
@@ -154,6 +153,9 @@ public class TicketService {
 
     public List<TicketDto> findAllByUserId(UUID userId) {
         List<Ticket> tickets = ticketRepository.findAllByUserId(userId);
+        if(tickets.isEmpty()){
+            throw new RuntimeException("Users have no tickets booked");
+        }
         return tickets.stream().map(ticket -> {
             TicketDto ticketDto = mapper.map(ticket, TicketDto.class);
             if (ticket.getUser() != null) {
@@ -224,5 +226,21 @@ public class TicketService {
         List<SeatDto>  availableSeats=(List<SeatDto>) redisTemplate.opsForValue().get(key);
         return availableSeats;
     }
+    public List<Integer> getSeatIdsFromRedis(String tempTicketId) {
+        // Lấy dữ liệu JSON từ Redis
+        String tempTicketJson = (String) redisTemplate.opsForValue().get(tempTicketId);
 
+        if (tempTicketJson == null) {
+            throw new RuntimeException("TempTicket not found");
+        }
+
+        try {
+            // Chuyển JSON thành đối tượng TempTicket và lấy danh sách seatIds
+            ObjectMapper objectMapper = new ObjectMapper();
+            TempTicket tempTicket = objectMapper.readValue(tempTicketJson, TempTicket.class);
+            return tempTicket.getSeatIds();
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi khi chuyển đổi JSON: " + e.getMessage());
+        }
+    }
 }
