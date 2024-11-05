@@ -1,9 +1,6 @@
 package ezcloud.ezMovie.auth.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import ezcloud.ezMovie.exception.EmailAlreadyExistsException;
-import ezcloud.ezMovie.exception.UsernameAlreadyExistException;
+import ezcloud.ezMovie.exception.*;
 import ezcloud.ezMovie.jwt.CodeGenerator;
 import ezcloud.ezMovie.jwt.JwtService;
 import ezcloud.ezMovie.auth.model.enities.CustomUserDetail;
@@ -13,21 +10,18 @@ import ezcloud.ezMovie.auth.model.payload.JwtResponse;
 import ezcloud.ezMovie.auth.model.payload.LoginRequest;
 import ezcloud.ezMovie.auth.model.payload.RegisterRequest;
 import ezcloud.ezMovie.auth.repository.UserRepository;
+
 import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -47,8 +41,10 @@ public class AuthService {
     @Autowired
     private UserRepository userRepository;
 
-
     public JwtResponse login(LoginRequest loginRequest){
+        if(!userService.existsByEmail(loginRequest.getEmail())){
+            throw new EmailNotFoundException("Email not found");
+        }
         authenticateByEmail(loginRequest.getEmail(), loginRequest.getPassword());
         UserDetails userDetails=userService.loadUserByEmail(loginRequest.getEmail());
         String token = jwtService.generateToken((CustomUserDetail) userDetails);
@@ -88,7 +84,7 @@ public class AuthService {
         User user = userService.findByVerificationCode(code);
 
         if (user == null) {
-            throw new UsernameNotFoundException("Invalid verification code");
+            throw new InvalidVerificationCodeException("Invalid verification code");
         }
         user.setVerified(true);
         user.setVerificationCode(null);
@@ -98,14 +94,12 @@ public class AuthService {
     public void forgotPassword(String email) throws MessagingException {
         User user = userService.findByEmail(email);
         if (user == null) {
-           throw new UsernameNotFoundException("Not found Email: "+email);
+           throw new EmailAlreadyExistsException("Not found Email: "+email);
         }
-        // Tạo mã xác thực quên mật khẩu
         String resetCode = CodeGenerator.generateVerificationCode(6);
         user.setResetPasswordCode(resetCode);
         userService.saveUser(user);
 
-        // Gửi email mã xác thực
         String body = "<d>Your password Reset Code is: </d> <h1  style=\\\"letter-spacing: 5px;\\> <strong>" + resetCode + "</strong></h1>";
         emailService.sendEmail(user.getEmail(), "Password Reset Code", body);
     }
@@ -113,9 +107,8 @@ public class AuthService {
     public void resetPassword( String resetCode, String newPassword) {
         User user = userService.findByResetPasswordCode(resetCode);
         if (user == null) {
-            throw new UsernameNotFoundException("Invalid or expired reset code");
+            throw new InvalidResetCodeException("Invalid or expired reset code");
         }
-        // Đặt lại mật khẩu mới
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setResetPasswordCode(null);
         userService.saveUser(user);
@@ -133,31 +126,22 @@ public class AuthService {
         if (user == null) {
             throw new EmailAlreadyExistsException("Not found inValid Email");
         }
-
-        // Kiểm tra mật khẩu cũ
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
             throw new RuntimeException("Incorrect current password");
         }
 
-        // Cập nhật mật khẩu mới
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userService.saveUser(user);
     }
     private void authenticateByEmail(String email, String password) {
-        try {
-            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
-        } catch (DisabledException e) {
-            throw new RuntimeException("USER_DISABLED", e);
-        } catch (BadCredentialsException e) {
-            throw new RuntimeException("INVALID_CREDENTIALS", e);
-        }
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
     }
     private boolean isValidEmail(String email) {
         String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*$";
         Pattern pattern = Pattern.compile(emailRegex);
         return pattern.matcher(email).matches();
     }
-    public JwtResponse loginGoogle(OAuth2User oAuth2User) throws IOException {
+    public JwtResponse loginGoogle(OAuth2User oAuth2User) {
         String email = oAuth2User.getAttribute("email");
         String name = oAuth2User.getAttribute("name");
         User existingUser = userRepository.findByEmail(email);

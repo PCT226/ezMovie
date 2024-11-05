@@ -14,19 +14,14 @@ public class EmailService {
     private JavaMailSender mailSender;
 
     public void sendEmail(String toEmail, String subject, String body) throws MessagingException {
-        // Tạo MimeMessage để gửi email có HTML
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
 
-        // Thiết lập người nhận, tiêu đề và nội dung (với định dạng HTML)
         helper.setTo(toEmail);
         helper.setSubject(subject);
-        helper.setText(body, true); // true để kích hoạt HTML
+        helper.setText(body, true);
 
-        // Set email gửi đi
         helper.setFrom("thanhpro2206@gmail.com");
-
-        // Gửi email
         mailSender.send(mimeMessage);
     }
 }

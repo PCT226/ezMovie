@@ -1,7 +1,10 @@
 package ezcloud.ezMovie.exception;
 
-public class UsernameAlreadyExistException extends RuntimeException{
-    public UsernameAlreadyExistException(String msg){
-        super(msg);
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
+
+public class UsernameAlreadyExistException extends RuntimeException {
+    public UsernameAlreadyExistException(String message) {
+        super(message);
     }
 }

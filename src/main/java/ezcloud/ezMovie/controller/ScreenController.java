@@ -6,15 +6,19 @@ import ezcloud.ezMovie.manage.model.payload.CreateScreenRequest;
 import ezcloud.ezMovie.manage.model.payload.UpdateScreenRequest;
 import ezcloud.ezMovie.manage.service.ScreenService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RestController
 @RequestMapping(value = "screen")
@@ -24,14 +28,23 @@ public class ScreenController {
     private ScreenService screenService;
 
     @GetMapping("/")
-    @Operation(summary = "Get all screens", description = "Retrieve a list of all screens")
+    @Operation(summary = "Get all screens", description = "Retrieve a list of all screens with pagination")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Danh sách phòng chiếu phim được lấy thành công."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi lấy danh sách phòng chiếu phim.")
     })
-    public ResponseEntity<List<ScreenDto>> getAll(){
-        return ResponseEntity.ok(screenService.getAll());
+    public ResponseEntity<Page<ScreenDto>> getAll(
+            @Parameter(description = "Số trang để phân trang", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+
+            @Parameter(description = "Kích thước mỗi trang", example = "10")
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(screenService.getAll(pageable));
     }
+
+
 
     @GetMapping("/{id}")
     @Operation(summary = "Get screens info", description = "Screen Info")

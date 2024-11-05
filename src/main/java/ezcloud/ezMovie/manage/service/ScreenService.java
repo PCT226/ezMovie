@@ -10,6 +10,8 @@ import ezcloud.ezMovie.manage.repository.CinemaRepository;
 import ezcloud.ezMovie.manage.repository.ScreenRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -25,9 +27,11 @@ public class ScreenService {
     @Autowired
     private ModelMapper mapper;
 
-    public List<ScreenDto> getAll() {
-        List<Screen> screens = screenRepository.findAllByIsDeleted(false);
-        return screens.stream().map(screen -> {
+    public Page<ScreenDto> getAll(Pageable pageable) {
+
+        Page<Screen> screens = screenRepository.findAllByIsDeleted(false, pageable);
+
+        return screens.map(screen -> {
             ScreenDto screenDTO = mapper.map(screen, ScreenDto.class);
 
             if (screen.getCinema() != null) {
@@ -38,8 +42,9 @@ public class ScreenService {
             }
 
             return screenDTO;
-        }).collect(Collectors.toList());
+        });
     }
+
 
     public Screen findById(int id) {
         return screenRepository.findById(id)

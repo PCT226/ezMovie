@@ -2,8 +2,12 @@ package ezcloud.ezMovie.controller;
 
 
 import ezcloud.ezMovie.manage.model.dto.CinemaDto;
+import ezcloud.ezMovie.manage.model.enities.Response;
 import ezcloud.ezMovie.manage.service.CinemaService;
+import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -33,8 +37,15 @@ public class CinemaController {
             @ApiResponse(responseCode = "200", description = "Danh sách rạp chiếu phim được lấy thành công."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi lấy danh sách rạp chiếu phim.")
     })
-    public ResponseEntity<List<CinemaDto>> getAll(){
-        return ResponseEntity.ok(cinemaService.getAll());
+    public ResponseEntity<List<CinemaDto>> getAll(
+            @Parameter(description = "Số trang để phân trang", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+
+            @Parameter(description = "Kích thước mỗi trang", example = "10")
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(cinemaService.getAll(pageable));
     }
 
     @GetMapping("/{id}")
@@ -43,7 +54,7 @@ public class CinemaController {
             @ApiResponse(responseCode = "200", description = "Chi tiết rạp chiếu phim được lấy thành công."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi lấy rạp chiếu phim.")
     })
-    public ResponseEntity<CinemaDto> getById(@PathVariable int id){
+    public ResponseEntity<Response<CinemaDto>> getById(@PathVariable int id){
         return ResponseEntity.ok(cinemaService.getById(id));
     }
 
@@ -54,7 +65,7 @@ public class CinemaController {
             @ApiResponse(responseCode = "400", description = "Yêu cầu không hợp lệ. Dữ liệu rạp chiếu phim không hợp lệ hoặc bị thiếu."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi tạo rạp chiếu phim.")
     })
-    public ResponseEntity<CinemaDto> create(@RequestBody CinemaDto cinemaDto){
+    public ResponseEntity<Response<CinemaDto>> create(@RequestBody CinemaDto cinemaDto){
         return ResponseEntity.ok(cinemaService.createCinema(cinemaDto));
     }
 

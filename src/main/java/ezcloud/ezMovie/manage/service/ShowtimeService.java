@@ -14,13 +14,15 @@ import ezcloud.ezMovie.manage.repository.ScreenRepository;
 import ezcloud.ezMovie.manage.repository.ShowtimeRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,15 +37,24 @@ public class ShowtimeService {
     @Autowired
     private ModelMapper mapper;
 
-    public List<ShowtimeDto> getUpcomingShowtimes() {
+    public List<ShowtimeDto> getUpcomingShowtimes(Pageable pageable) {
         LocalDate nowDate = LocalDate.now();
         LocalTime nowTime = LocalTime.now();
 
         List<Showtime> todayUpcoming = showtimeRepository.findByDateAndStartTimeAfterAndIsDeletedFalse(nowDate, nowTime);
         List<Showtime> futureShowtimes = showtimeRepository.findByDateAfterAndIsDeletedFalse(nowDate);
-        todayUpcoming.addAll(futureShowtimes);
 
-        return todayUpcoming.stream().map(showtime -> {
+        List<Showtime> combinedList = new ArrayList<>();
+        combinedList.addAll(todayUpcoming);
+        combinedList.addAll(futureShowtimes);
+
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), combinedList.size());
+
+        List<Showtime> pagedContent = combinedList.subList(start, end);
+        Page<Showtime> allShowtime = new PageImpl<>(pagedContent, pageable, pagedContent.size());
+
+        return allShowtime.stream().map(showtime -> {
             ShowtimeDto showtimeDto = mapper.map(showtime, ShowtimeDto.class);
             if (showtime.getMovie() != null) {
                 MovieInfo movieInfo = mapper.map(showtime.getMovie(), MovieInfo.class);
@@ -68,26 +79,43 @@ public class ShowtimeService {
         }).collect(Collectors.toList());
     }
 
-    public List<ShowtimeDto> getUpcomingShowtimesForMovie(Integer movieId, Integer cinemaId, LocalDate date){
+    public List<ShowtimeDto> getUpcomingShowtimesForMovie(Integer movieId, Integer cinemaId, LocalDate date, Pageable pageable) {
         LocalDate nowDate = LocalDate.now();
         LocalTime nowTime = LocalTime.now();
 
+        // Lấy danh sách showtime hôm nay và tương lai
         List<Showtime> todayUpcoming = showtimeRepository.findByMovieIdAndDateAndStartTimeAfterAndIsDeletedFalse(movieId, nowDate, nowTime);
         List<Showtime> futureShowtimes = showtimeRepository.findByMovieIdAndDateAfterAndIsDeletedFalse(movieId, nowDate);
-        todayUpcoming.addAll(futureShowtimes);
 
+        // Kết hợp danh sách
+        List<Showtime> combinedList = new ArrayList<>();
+        combinedList.addAll(todayUpcoming);
+        combinedList.addAll(futureShowtimes);
+
+        // Lọc theo cinemaId
         if (cinemaId != null) {
-            todayUpcoming = todayUpcoming.stream()
+            combinedList = combinedList.stream()
                     .filter(showtime -> showtime.getScreen().getCinema().getId().equals(cinemaId))
                     .collect(Collectors.toList());
         }
-        if(date != null){
-            todayUpcoming = todayUpcoming.stream()
+
+        // Lọc theo date
+        if (date != null) {
+            combinedList = combinedList.stream()
                     .filter(showtime -> showtime.getDate().equals(date))
                     .collect(Collectors.toList());
         }
 
-        return todayUpcoming.stream().map(showtime -> {
+        // Phân trang
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), combinedList.size());
+        List<Showtime> pagedContent = combinedList.subList(start, end);
+
+        // Tạo Page từ danh sách đã phân trang
+        Page<Showtime> allShowtime = new PageImpl<>(pagedContent, pageable, combinedList.size());
+
+        // Chuyển đổi sang ShowtimeDto
+        return allShowtime.getContent().stream().map(showtime -> {
             ShowtimeDto showtimeDto = mapper.map(showtime, ShowtimeDto.class);
             if (showtime.getMovie() != null) {
                 MovieInfo movieInfo = mapper.map(showtime.getMovie(), MovieInfo.class);

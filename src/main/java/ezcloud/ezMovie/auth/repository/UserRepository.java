@@ -1,6 +1,8 @@
 package ezcloud.ezMovie.auth.repository;
 
 import ezcloud.ezMovie.auth.model.enities.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -19,5 +21,5 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsByEmail(String email);
     List<User> findAll();
 
-    List<User> findAllByIsDeleted(boolean isDeleted);
+    Page<User> findAllByIsDeleted(boolean isDeleted, Pageable pageable);
 }

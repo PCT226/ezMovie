@@ -6,10 +6,13 @@ import ezcloud.ezMovie.manage.model.payload.CreateSeatRequest;
 import ezcloud.ezMovie.manage.model.payload.UpdateSeatRequest;
 import ezcloud.ezMovie.manage.service.SeatService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,8 +31,16 @@ public class SeatController {
             @ApiResponse(responseCode = "200", description = "Danh sách ghế được lấy thành công."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi lấy danh sách ghế.")
     })
-    public ResponseEntity<List<SeatDto>> getAllByScreen(@PathVariable int id){
-        return ResponseEntity.ok(seatService.findAllByScreenId(id));
+    public ResponseEntity<List<SeatDto>> getAllByScreen(
+            @PathVariable int id,
+            @Parameter(description = "Số trang để phân trang", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+
+            @Parameter(description = "Kích thước mỗi trang", example = "10")
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(seatService.findAllByScreenId(id,pageable));
     }
     @GetMapping("/listSeat")
     @Operation(summary = "Get all seats by showtimeId", description = "Retrieve a list seat for showtime")
@@ -37,9 +48,18 @@ public class SeatController {
             @ApiResponse(responseCode = "200", description = "Danh sách ghế được lấy thành công."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi lấy danh sách ghế.")
     })
-    public ResponseEntity<?> getAllByShowtime(@RequestParam Integer showtimeId) {
+    public ResponseEntity<?> getAllByShowtime(
+            @RequestParam Integer showtimeId,
+
+            @Parameter(description = "Số trang để phân trang", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+
+            @Parameter(description = "Kích thước mỗi trang", example = "10")
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
         try {
-            return ResponseEntity.ok(seatService.getSeatsByShowtimeId(showtimeId));
+            return ResponseEntity.ok(seatService.getSeatsByShowtimeId(showtimeId,pageable));
         } catch (RuntimeException ex) {
             return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
         } catch (Exception ex) {

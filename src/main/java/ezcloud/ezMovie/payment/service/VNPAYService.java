@@ -36,33 +36,29 @@ public class VNPAYService {
     private ShowtimeRepository showtimeRepository;
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
-
-    public Response<String> submitOrder(HttpServletRequest request, String id, String orderInfo) {
+    public Response<String> submitOrder(HttpServletRequest request, String id) {
         String baseUrl = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
         int orderTotal = ticketRepository.getTicketById(UUID.fromString(id)).getTotalPrice().intValue();
-        String vnpayUrl = createOrder(request, orderTotal, orderInfo, baseUrl);
+        String vnpayUrl = createOrder(request, orderTotal, id, baseUrl);
 
-        saveOrder(id, orderInfo);
-        request.setAttribute("orderId", id);
+        saveOrder(id);
         return new Response<>(0, vnpayUrl);
     }
 
 
     public Response<Map<String, Object>> paymentCompleted(HttpServletRequest request) {
-        String orderId = (String) request.getAttribute("orderId");
-        Ticket ticket = ticketRepository.findById(UUID.fromString(orderId))
-                .orElseThrow(() -> new RuntimeException("Ticket not found"));
-        int paymentStatus = orderReturn(request);
+
         // Lấy thông tin từ request
-        String orderInfo = request.getParameter("vnp_OrderInfo");
+        String orderId = request.getParameter("vnp_OrderInfo");
         String paymentTime = request.getParameter("vnp_PayDate");
         String transactionId = request.getParameter("vnp_TransactionNo");
         String totalPrice = request.getParameter("vnp_Amount");
-
+        Ticket ticket = ticketRepository.findById(UUID.fromString(orderId))
+                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+        int paymentStatus = orderReturn(request);
         // Chuẩn bị dữ liệu trả về
         Map<String, Object> response = new HashMap<>();
         response.put("orderId", orderId);
-        response.put("orderInfo",orderInfo);
         response.put("totalPrice", totalPrice);
         response.put("paymentTime", paymentTime);
         response.put("transactionId", transactionId);
@@ -90,11 +86,7 @@ public class VNPAYService {
         if (paymentStatus == 1) {
             // Nếu thanh toán thành công, cập nhật isPaid = true
             updatePaymentStatus(UUID.fromString(orderId));
-            ticketService.confirmBooking(orderId);
-//            ticketService.removeSeatsCache(showtimeId);
-//            ticketService.getAvailableSeatsByShowtime(showtimeId,ttlSeconds);
-            //ticketService.updateStatus(orderId);
-            //saveOrder(orderInfo);
+            ticketService. confirmBooking(orderId);
             response.put("message", "Payment Success");
             response.put("status", "success");
             resCode = 0;
@@ -203,13 +195,12 @@ public class VNPAYService {
 
 
 
-    public void saveOrder(String id, String orderInfo) {
+    public void saveOrder(String id) {
 
         Optional<Ticket> ticketOpt = ticketRepository.findById(UUID.fromString(id));
 
         if (ticketOpt.isPresent()) {
             Ticket ticket = ticketOpt.get();
-            ticket.setOrderInfo(orderInfo);
             ticket.setPaid(false);
             ticketRepository.save(ticket);
         }else {

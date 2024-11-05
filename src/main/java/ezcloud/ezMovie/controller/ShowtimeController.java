@@ -5,10 +5,14 @@ import ezcloud.ezMovie.manage.model.payload.CreateShowtimeRequest;
 import ezcloud.ezMovie.manage.model.payload.UpdateShowtimeRq;
 import ezcloud.ezMovie.manage.service.ShowtimeService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,8 +34,15 @@ public class ShowtimeController {
             @ApiResponse(responseCode = "200", description = "Danh sách lịch chiếu được lấy thành công."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi lấy danh sách lịch chiếu phim.")
     })
-    public ResponseEntity<List<ShowtimeDto>> getAll(){
-        return ResponseEntity.ok(showtimeService.getUpcomingShowtimes());
+    public ResponseEntity<List<ShowtimeDto>> getAll(
+            @Parameter(description = "Số trang để phân trang", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+
+            @Parameter(description = "Kích thước mỗi trang", example = "10")
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(showtimeService.getUpcomingShowtimes(pageable));
     }
     @GetMapping("/findShowtime")
     @Operation(summary = "Get all showtime available for movie", description = "Retrieve a list of all showtime available for movie")
@@ -39,8 +50,19 @@ public class ShowtimeController {
             @ApiResponse(responseCode = "200", description = "Danh sách lịch chiếu của phim được lấy thành công."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi lấy danh sách lịch chiếu phim.")
     })
-    public ResponseEntity<List<ShowtimeDto>> getAll(@RequestParam Integer movieId,@RequestParam(required = false) Integer cinemaId ,@RequestParam(required = false) LocalDate date){
-        return ResponseEntity.ok(showtimeService.getUpcomingShowtimesForMovie(movieId,cinemaId,date));
+    public ResponseEntity<List<ShowtimeDto>> getAll(
+            @RequestParam Integer movieId,
+            @RequestParam(required = false) Integer cinemaId ,
+            @Parameter(description = "The date in yyyy-MM-dd format", schema = @Schema(type = "string", format = "date"))
+            @RequestParam(required = false) LocalDate date,
+
+            @Parameter(description = "Số trang để phân trang", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Kích thước mỗi trang", example = "10")
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(showtimeService.getUpcomingShowtimesForMovie(movieId,cinemaId,date,pageable));
     }
 
 

@@ -1,13 +1,17 @@
 package ezcloud.ezMovie.controller;
 
 import ezcloud.ezMovie.manage.model.dto.MovieInfo;
+import ezcloud.ezMovie.manage.model.enities.Response;
 import ezcloud.ezMovie.rateLimit.RateLimit;
 import ezcloud.ezMovie.manage.service.MovieService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,8 +31,14 @@ public class MovieController {
             @ApiResponse(responseCode = "200", description = "Danh sách phim được lấy thành công."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi lấy danh sách phim.")
     })
-    public ResponseEntity<List<MovieInfo>> getListMovie(){
-        return ResponseEntity.ok(movieService.findAll());
+    public ResponseEntity<List<MovieInfo>> getListMovie(
+            @Parameter(description = "Số trang để phân trang", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+
+            @Parameter(description = "Kích thước mỗi trang", example = "10")
+            @RequestParam(defaultValue = "10") int size){
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(movieService.findAll(pageable));
     }
 
     @GetMapping("/{id}")
@@ -51,8 +61,13 @@ public class MovieController {
     public ResponseEntity<List<MovieInfo>> searchMovies(
             @RequestParam(name = "title", required = false) String title,
             @RequestParam(name = "genre", required = false) String genre,
-            @RequestParam(name = "actor", required = false) String actor) {
-        List<MovieInfo> movies = movieService.searchMovies(title, genre, actor);
+            @RequestParam(name = "actor", required = false) String actor,
+            @Parameter(description = "Số trang để phân trang", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Kích thước mỗi trang", example = "10")
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        List<MovieInfo> movies = movieService.searchMovies(title, genre, actor,pageable);
         if (movies.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
@@ -66,7 +81,7 @@ public class MovieController {
             @ApiResponse(responseCode = "400", description = "Yêu cầu không hợp lệ. Dữ liệu phim không hợp lệ hoặc bị thiếu."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi tạo phim.")
     })
-    public ResponseEntity<MovieInfo> create(@RequestBody MovieInfo movieInfo){
+    public ResponseEntity<Response<MovieInfo>> create(@RequestBody MovieInfo movieInfo){
         return ResponseEntity.ok(movieService.createMovie(movieInfo));
     }
 
@@ -77,7 +92,7 @@ public class MovieController {
             @ApiResponse(responseCode = "400", description = "Yêu cầu không hợp lệ. Dữ liệu phim không hợp lệ hoặc bị thiếu."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi tạo phim.")
     })
-    public ResponseEntity<MovieInfo> update(@RequestBody MovieInfo movieInfo){
+    public ResponseEntity<Response<MovieInfo>> update(@RequestBody MovieInfo movieInfo){
         return ResponseEntity.ok(movieService.updateMovie(movieInfo));
     }
 

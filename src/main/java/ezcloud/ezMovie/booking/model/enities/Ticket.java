@@ -34,7 +34,6 @@ public class Ticket {
     private LocalDateTime bookingTime;
     private BigDecimal totalPrice;
     private String paymentStatus;
-    private String orderInfo;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private boolean isDeleted = false;

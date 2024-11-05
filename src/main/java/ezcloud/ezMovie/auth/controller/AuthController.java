@@ -1,44 +1,30 @@
 package ezcloud.ezMovie.auth.controller;
 
-
 import ezcloud.ezMovie.exception.EmailAlreadyExistsException;
-import ezcloud.ezMovie.exception.UsernameAlreadyExistException;
 import ezcloud.ezMovie.auth.model.payload.JwtResponse;
 import ezcloud.ezMovie.auth.model.payload.LoginRequest;
 import ezcloud.ezMovie.auth.model.payload.RegisterRequest;
 import ezcloud.ezMovie.auth.service.AuthService;
-import jakarta.servlet.http.HttpServletResponse;
+import ezcloud.ezMovie.exception.EmailNotFoundException;
+import io.swagger.v3.oas.annotations.Parameter;
 import lombok.RequiredArgsConstructor;
-import ezcloud.ezMovie.jwt.JwtService;
 import ezcloud.ezMovie.auth.model.payload.ChangePasswordRequest;
-import ezcloud.ezMovie.auth.service.EmailService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 import org.springframework.web.bind.annotation.*;
-
-import java.io.IOException;
-
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -47,33 +33,43 @@ import java.io.IOException;
 @Tag(name = "Authentication", description = "APIs for user authentication and registration")
 public class AuthController {
 
-    private final AuthenticationManager authenticationManager;
-    private final JwtService jwtService;
     private final AuthService authService;
-    private final PasswordEncoder passwordEncoder;
-
-
-    @Autowired
-    private EmailService emailService;
-
 
     @PostMapping("/login")
     @Operation(summary = "User login", description = "Authenticate user and return JWT token")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Đăng nhập thành công, trả về JWT token."),
-            @ApiResponse(responseCode = "403", description = "Xác thực không thành công.",
-                    content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Unauthorized\" }"))),
+            @ApiResponse(responseCode = "200", description = "Đăng nhập thành công, trả về JWT token.",
+                    content = @Content(examples = @ExampleObject(value = "{ \"JWT token\":\"eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6IlVTRVIiLCJpZCI6IjFmNjVlZjVkLWZmM2MtNGI0OS1hZTBmLWJlNTkwMTk5YzU3YiIsImVtYWlsIjoiemFpaG9sZTIwMDNAZ21haWwuY29tIiwic3ViIjoiemFpaG9sZTIwMDNAZ21haWwuY29tIiwiaWF0IjoxNzI4ODkyNTU0LCJleHAiOjE4Mjg4OTI1NTR9.BRRDoznWu4J301MwIHZypQqcJAtWYB8O2Z8w0hgnUAE\"}"))),
+            @ApiResponse(responseCode = "400", description = "Yêu cầu không hợp lệ.",
+                    content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Invalid request data\" }"))),
+            @ApiResponse(responseCode = "401", description = "Sai tên đăng nhập hoặc mật khẩu.",
+                    content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Invalid username or password\" }"))),
+            @ApiResponse(responseCode = "404", description = "Người dùng không tồn tại.",
+                    content = @Content(examples = @ExampleObject(value = "{ \"error\": \"User not found\" }"))),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ.",
                     content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Internal Server Error\" }")))
     })
-    public ResponseEntity<JwtResponse> login(@RequestBody LoginRequest jwtRequest) {
-        return ResponseEntity.ok(authService.login(jwtRequest));
+    public ResponseEntity<?> login(@RequestBody LoginRequest jwtRequest) {
+        try {
+            JwtResponse jwtResponse = authService.login(jwtRequest);
+            return ResponseEntity.ok(jwtResponse);
+        } catch (EmailNotFoundException ex) {
+            return new ResponseEntity<>("{ \"error\": \"User not found\" }", HttpStatus.NOT_FOUND);
+        } catch (BadCredentialsException ex) {
+            return new ResponseEntity<>("{ \"error\": \"Invalid username or password\" }", HttpStatus.UNAUTHORIZED);
+        } catch (IllegalArgumentException ex) {
+            return new ResponseEntity<>("{ \"error\": \"Invalid request data\" }", HttpStatus.BAD_REQUEST);
+        } catch (Exception ex) {
+            return new ResponseEntity<>("{ \"error\": \"Internal Server Error\" }", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
+
 
     @PostMapping("/register")
     @Operation(summary = "User registration", description = "Register a new user")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Người dùng được đăng ký thành công."),
+            @ApiResponse(responseCode = "201", description = "Người dùng được đăng ký thành công.",
+                    content =  @Content(examples = @ExampleObject(value = "{\"success\":\"User registered successfully\"}"))),
             @ApiResponse(responseCode = "400", description = "Tên người dùng hoặc email đã tồn tại.",
                     content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Bad Request\" }"))),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ.",
@@ -82,10 +78,6 @@ public class AuthController {
     public ResponseEntity<?> register(@RequestBody RegisterRequest request){
         try {
             authService.register(request);
-        } catch (UsernameAlreadyExistException ex) {
-            return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_ACCEPTABLE);
-        } catch (EmailAlreadyExistsException ex) {
-            return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_ACCEPTABLE);
         } catch (Exception ex) {
             return new ResponseEntity<>("An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -94,11 +86,21 @@ public class AuthController {
 
 
     @PostMapping("/verify-register")
-    public ResponseEntity<String> verifyAccountRegister(@RequestParam("code") String code) {
+    @Operation(summary = "Verify Account Registration",
+            description = "Xác thực tài khoản đã đăng ký bằng mã xác thực.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Tài khoản được xác thực thành công",
+                    content =  @Content(examples = @ExampleObject(value = "{\"error\":\"Account verified successfully\"}"))),
+            @ApiResponse(responseCode = "400", description = "Mã xác thực không hợp lệ hoặc không tìm thấy",
+                    content =  @Content(examples = @ExampleObject(value = "{\"error\":\"Verify code incorrect\"}")))
+    })
+    public ResponseEntity<String> verifyAccountRegister(
+            @Parameter(description = "Mã xác thực của tài khoản")
+            @RequestParam("code") String code) {
         try {
             authService.verifyAccountRegister(code);
-        }catch (UsernameNotFoundException ex){
-            return new ResponseEntity<>(ex.getMessage(),HttpStatus.BAD_REQUEST);
+        } catch (Exception ex) {
+            return new ResponseEntity<>("An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         return ResponseEntity.ok("Account verified successfully");
@@ -107,15 +109,16 @@ public class AuthController {
     @PostMapping("/forgot-password")
     @Operation(summary = "Forgot password", description = "Send a password reset code to the user's email")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Mã xác thực quên mật khẩu đã được gửi."),
+            @ApiResponse(responseCode = "200", description = "Mã xác thực quên mật khẩu đã được gửi.",
+                    content = @Content(examples = @ExampleObject(value = "{\"success\": \"Password reset code sent successfully\" }"))),
             @ApiResponse(responseCode = "404", description = "Email không tồn tại.",
                     content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Email not found\" }")))
     })
-    public ResponseEntity<String> forgotPassword(@RequestParam("email") String email) throws MessagingException {
+    public ResponseEntity<String> forgotPassword(@RequestParam("email") String email) {
         try{
             authService.forgotPassword(email);
-        }catch (UsernameNotFoundException ex){
-            return new ResponseEntity<>(ex.getMessage(),HttpStatus.NOT_FOUND);
+        }catch (Exception ex){
+            return new ResponseEntity<>("An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return ResponseEntity.ok("Password reset code sent successfully");
     }
@@ -123,7 +126,8 @@ public class AuthController {
     @PostMapping("/reset-password")
     @Operation(summary = "Reset password", description = "Verify the password reset code and set a new password")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Mật khẩu đã được đặt lại thành công."),
+            @ApiResponse(responseCode = "200", description = "Mật khẩu đã được đặt lại thành công.",
+                    content = @Content(examples = @ExampleObject(value = "{\"success\": \"Password reset successfully\" }"))),
             @ApiResponse(responseCode = "400", description = "Mã xác thực không hợp lệ hoặc đã hết hạn.",
                     content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Invalid or expired reset code\" }")))
     })
@@ -139,7 +143,8 @@ public class AuthController {
     @PostMapping("/change-password")
     @Operation(summary = "Change user password", description = "Change the password for a user")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Password changed successfully."),
+            @ApiResponse(responseCode = "200", description = "Password changed successfully.",
+                    content = @Content(examples = @ExampleObject(value = "{ \"success\":\"Password changed successfully\" }"))),
             @ApiResponse(responseCode = "400", description = "Invalid input or incorrect current password.",
                     content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Bad Request\" }"))),
             @ApiResponse(responseCode = "500", description = "Internal server error.",

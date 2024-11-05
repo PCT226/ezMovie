@@ -1,7 +1,5 @@
 package ezcloud.ezMovie.booking.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import ezcloud.ezMovie.auth.model.dto.UserInfo;
 import ezcloud.ezMovie.auth.model.enities.User;
 import ezcloud.ezMovie.auth.repository.UserRepository;
@@ -15,24 +13,22 @@ import ezcloud.ezMovie.booking.repository.DiscountRepository;
 import ezcloud.ezMovie.booking.repository.TicketRepository;
 import ezcloud.ezMovie.exception.TicketHeldException;
 import ezcloud.ezMovie.manage.model.dto.*;
+import ezcloud.ezMovie.manage.model.enities.Response;
 import ezcloud.ezMovie.manage.model.enities.Seat;
 import ezcloud.ezMovie.manage.model.enities.Showtime;
 import ezcloud.ezMovie.manage.repository.SeatRepository;
 import ezcloud.ezMovie.manage.repository.ShowtimeRepository;
 import jakarta.transaction.Transactional;
-import lombok.Getter;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.redis.RedisConnectionFailureException;
-import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -56,7 +52,7 @@ public class TicketService {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
     @Transactional
-    public String reserveSeats(UUID userId, Integer showtimeId, List<Integer> seatIds, String discountCode) throws Exception {
+    public Response<String> reserveSeats(UUID userId, Integer showtimeId, List<Integer> seatIds, String discountCode) throws Exception {
 
         Showtime showtime = showtimeRepository.findById(showtimeId)
                 .orElseThrow(() -> new RuntimeException("Showtime not found"));
@@ -105,7 +101,7 @@ public class TicketService {
             System.err.println("Lỗi khi lưu vé tạm thời vào Redis: " + e.getMessage());
         }
 
-        return tempTicketId;
+        return new Response<>(0,tempTicketId);
 
     }
 
@@ -227,20 +223,12 @@ public class TicketService {
         return availableSeats;
     }
     public List<Integer> getSeatIdsFromRedis(String tempTicketId) {
-        // Lấy dữ liệu JSON từ Redis
-        String tempTicketJson = (String) redisTemplate.opsForValue().get(tempTicketId);
+        TempTicket tempTicketJson = (TempTicket) redisTemplate.opsForValue().get(tempTicketId);
 
         if (tempTicketJson == null) {
             throw new RuntimeException("TempTicket not found");
         }
+        return tempTicketJson.getSeatIds();
 
-        try {
-            // Chuyển JSON thành đối tượng TempTicket và lấy danh sách seatIds
-            ObjectMapper objectMapper = new ObjectMapper();
-            TempTicket tempTicket = objectMapper.readValue(tempTicketJson, TempTicket.class);
-            return tempTicket.getSeatIds();
-        } catch (Exception e) {
-            throw new RuntimeException("Lỗi khi chuyển đổi JSON: " + e.getMessage());
-        }
     }
 }
