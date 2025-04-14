@@ -11,7 +11,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:3000", "https://ezmovie-iota.vercel.app")
+                .allowedOrigins("http://localhost:3000", "https://ezmovie-iota.vercel.app","https://ezmovie-production.up.railway.app")
                 .allowedMethods("*")
                 .allowedHeaders("*")
                 .exposedHeaders("Location")
