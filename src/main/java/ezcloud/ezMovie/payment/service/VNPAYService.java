@@ -1,14 +1,13 @@
 package ezcloud.ezMovie.payment.service;
 
-import ezcloud.ezMovie.booking.model.dto.TempTicket;
 import ezcloud.ezMovie.booking.model.enities.Ticket;
+import ezcloud.ezMovie.booking.repository.TicketRepository;
+import ezcloud.ezMovie.booking.service.TicketService;
 import ezcloud.ezMovie.manage.model.dto.SeatDto;
 import ezcloud.ezMovie.manage.model.enities.Response;
 import ezcloud.ezMovie.manage.model.enities.Showtime;
 import ezcloud.ezMovie.manage.repository.ShowtimeRepository;
 import ezcloud.ezMovie.payment.config.VNPAYConfig;
-import ezcloud.ezMovie.booking.repository.TicketRepository;
-import ezcloud.ezMovie.booking.service.TicketService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -16,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.webjars.NotFoundException;
 
 import java.io.UnsupportedEncodingException;
-import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -36,6 +34,7 @@ public class VNPAYService {
     private ShowtimeRepository showtimeRepository;
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+
     public Response<String> submitOrder(HttpServletRequest request, String id) {
         String baseUrl = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
         int orderTotal = ticketRepository.getTicketById(UUID.fromString(id)).getTotalPrice().intValue();
@@ -46,28 +45,19 @@ public class VNPAYService {
     }
 
 
-    public Response<Map<String, Object>> paymentCompleted(HttpServletRequest request) {
+    public Integer paymentCompleted(String orderId, int paymentStatus) {
 
         // Lấy thông tin từ request
-        String orderId = request.getParameter("vnp_OrderInfo");
-        String paymentTime = request.getParameter("vnp_PayDate");
-        String transactionId = request.getParameter("vnp_TransactionNo");
-        String totalPrice = request.getParameter("vnp_Amount");
+
         Ticket ticket = ticketRepository.findById(UUID.fromString(orderId))
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
-        int paymentStatus = orderReturn(request);
-        // Chuẩn bị dữ liệu trả về
-        Map<String, Object> response = new HashMap<>();
-        response.put("orderId", orderId);
-        response.put("totalPrice", totalPrice);
-        response.put("paymentTime", paymentTime);
-        response.put("transactionId", transactionId);
+
 
         Integer showtimeId = ticket.getShowtime().getId();
         Showtime showtime = showtimeRepository.findById(showtimeId)
                 .orElseThrow(() -> new RuntimeException("Showtime not found"));
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime endTime = LocalDateTime.of(showtime.getDate(),showtime.getEndTime());
+        LocalDateTime endTime = LocalDateTime.of(showtime.getDate(), showtime.getEndTime());
         long ttlSeconds = Duration.between(now, endTime).getSeconds();
 
         List<SeatDto> availableSeats = ticketService.getTempTicketInfo(String.valueOf(showtimeId));
@@ -82,21 +72,18 @@ public class VNPAYService {
             }
         }
         redisTemplate.opsForValue().set("listSeat::" + showtimeId, availableSeats, ttlSeconds, TimeUnit.SECONDS);
-        int resCode ;
+        int resCode;
         if (paymentStatus == 1) {
-            // Nếu thanh toán thành công, cập nhật isPaid = true
-            updatePaymentStatus(UUID.fromString(orderId));
-            ticketService. confirmBooking(orderId);
-            response.put("message", "Payment Success");
-            response.put("status", "success");
+            // Nếu thanh toán thành công
+            String ticketCode = ticketService.generateAndSaveTicketCode(UUID.fromString(orderId));
+            ticketService.confirmBooking(orderId);
+            updatePaymentStatus(UUID.fromString(orderId));  // Cập nhật status sau cùng
             resCode = 0;
         } else {
-            response.put("message", "Payment Failed");
-            response.put("status", "failed");
             resCode = 1;
         }
 
-        return new Response<>(resCode, response);
+        return resCode;
     }
 
     public String createOrder(HttpServletRequest request, int amount, String orderInfor, String urlReturn) {
@@ -121,8 +108,7 @@ public class VNPAYService {
         String locate = "vn";
         vnp_Params.put("vnp_Locale", locate);
 
-        urlReturn += VNPAYConfig.vnp_Returnurl;
-        vnp_Params.put("vnp_ReturnUrl", urlReturn);
+        vnp_Params.put("vnp_ReturnUrl", VNPAYConfig.vnp_Returnurl);
         vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
 
         Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Etc/GMT+7"));
@@ -141,18 +127,14 @@ public class VNPAYService {
         Iterator itr = fieldNames.iterator();
         while (itr.hasNext()) {
             String fieldName = (String) itr.next();
-            String fieldValue = (String) vnp_Params.get(fieldName);
+            String fieldValue = vnp_Params.get(fieldName);
             if ((fieldValue != null) && (fieldValue.length() > 0)) {
                 hashData.append(fieldName);
                 hashData.append('=');
-                try {
-                    hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
-                    query.append(URLEncoder.encode(fieldName, StandardCharsets.US_ASCII.toString()));
-                    query.append('=');
-                    query.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                }
+                hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII));
+                query.append(URLEncoder.encode(fieldName, StandardCharsets.US_ASCII));
+                query.append('=');
+                query.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII));
                 if (itr.hasNext()) {
                     query.append('&');
                     hashData.append('&');
@@ -179,12 +161,8 @@ public class VNPAYService {
         }
 
         String vnp_SecureHash = request.getParameter("vnp_SecureHash");
-        if (fields.containsKey("vnp_SecureHashType")) {
-            fields.remove("vnp_SecureHashType");
-        }
-        if (fields.containsKey("vnp_SecureHash")) {
-            fields.remove("vnp_SecureHash");
-        }
+        fields.remove("vnp_SecureHashType");
+        fields.remove("vnp_SecureHash");
         String signValue = VNPAYConfig.hashAllFields(fields);
         if (signValue.equals(vnp_SecureHash)) {
             return "00".equals(request.getParameter("vnp_TransactionStatus")) ? 1 : 0;
@@ -192,7 +170,6 @@ public class VNPAYService {
             return -1;
         }
     }
-
 
 
     public void saveOrder(String id) {
@@ -203,7 +180,7 @@ public class VNPAYService {
             Ticket ticket = ticketOpt.get();
             ticket.setPaid(false);
             ticketRepository.save(ticket);
-        }else {
+        } else {
             throw new NotFoundException("Not found ticket");
         }
     }

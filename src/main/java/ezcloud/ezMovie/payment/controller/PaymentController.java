@@ -12,8 +12,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
-
 @RestController
 @RequestMapping(value = "payment")
 @Tag(name = "Payment", description = "API for Payments")
@@ -25,8 +23,8 @@ public class PaymentController {
     @Operation(summary = "Submit an order")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Order submitted successfully",
-                content = @Content(examples = @ExampleObject(value = "{ \"responseCode\": 0,\n" +
-                        "  \"data\": \"urlString\"}"))),
+                    content = @Content(examples = @ExampleObject(value = "{ \"responseCode\": 0,\n" +
+                            "  \"data\": \"urlString\"}"))),
             @ApiResponse(responseCode = "404", description = "Not found ticket",
                     content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Not found ticket\" }"))),
             @ApiResponse(responseCode = "500", description = "Internal server error",
@@ -38,8 +36,8 @@ public class PaymentController {
     }
 
     @GetMapping("/vnpay-payment-return")
-    public Response<Map<String, Object>> paymentCompleted(HttpServletRequest request) {
-        return vnPayService.paymentCompleted(request);
+    public Integer paymentCompleted(@RequestParam String orderId, int paymentStatus) {
+        return vnPayService.paymentCompleted(orderId, paymentStatus);
     }
     //http://localhost:8080/payment/qrGen
 //    @PostMapping("/payment/qrGen")

@@ -21,16 +21,16 @@ public class User {
     private UUID id;
 
 
-    @Column(nullable = false,unique = true)
+    @Column(nullable = false, unique = true)
     private String username;
     @Column(nullable = false)
     private String password;
-    @Column(nullable = false,unique = true)
+    @Column(nullable = false, unique = true)
     private String email;
     @Column(unique = true)
     private String phoneNumber;
     private String role;
-    @Column(nullable = false,updatable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private boolean isDeleted = false;

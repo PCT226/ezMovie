@@ -27,7 +27,7 @@ public class Screen {
     private Integer screenNumber;
     @Column(nullable = false)
     private Integer capacity;
-    @Column(nullable = false,updatable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private boolean isDeleted = false;

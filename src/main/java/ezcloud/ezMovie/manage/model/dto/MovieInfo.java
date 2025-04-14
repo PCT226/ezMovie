@@ -12,7 +12,7 @@ import lombok.Setter;
 public class MovieInfo {
     private Integer id;
 
-    private String cast;
+    private String actor;
     private String director;
     private String title;
     private String description;

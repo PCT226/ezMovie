@@ -10,9 +10,11 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface SeatRepository extends JpaRepository<Seat,Integer> {
+public interface SeatRepository extends JpaRepository<Seat, Integer> {
     List<Seat> findAllByScreenIdAndIsDeletedFalse(int screenId);
+
     List<Seat> findAllByScreenIdAndIsDeletedFalse(int screenId, Pageable pageable);
+
     @Query("SELECT s FROM Seat s " +
             "JOIN Screen scr ON s.screen.id = scr.id " +
             "JOIN Showtime st ON st.screen.id = scr.id " +

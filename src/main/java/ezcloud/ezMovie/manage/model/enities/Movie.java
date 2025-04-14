@@ -20,10 +20,10 @@ public class Movie {
     private Integer id;
 
     @Column(nullable = false)
-    private String cast;
+    private String actor;
     @Column(nullable = false)
     private String director;
-    @Column(nullable = false,unique = true)
+    @Column(nullable = false, unique = true)
     private String title;
     @Column(nullable = false)
     private String description;

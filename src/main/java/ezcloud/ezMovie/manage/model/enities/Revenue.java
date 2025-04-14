@@ -27,7 +27,7 @@ public class Revenue {
 
     private BigDecimal amount;
     private LocalDate date;
-    @Column(nullable = false,updatable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private boolean isDeleted = false;

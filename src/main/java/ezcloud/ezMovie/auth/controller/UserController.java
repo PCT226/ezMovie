@@ -1,15 +1,15 @@
 package ezcloud.ezMovie.auth.controller;
 
-import ezcloud.ezMovie.auth.model.dto.UserUpdate;
-import ezcloud.ezMovie.exception.EmailAlreadyExistsException;
 import ezcloud.ezMovie.auth.model.dto.UserInfo;
+import ezcloud.ezMovie.auth.model.dto.UserUpdate;
 import ezcloud.ezMovie.auth.service.UserService;
+import ezcloud.ezMovie.exception.EmailAlreadyExistsException;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -56,10 +56,10 @@ public class UserController {
 
             @Parameter(description = "Kích thước mỗi trang", example = "10")
             @RequestParam(defaultValue = "10") int size) {
-        try{
+        try {
             Pageable pageable = PageRequest.of(page, size);
             return ResponseEntity.ok(userService.getAll(pageable));
-        }catch (UsernameNotFoundException ex) {
+        } catch (UsernameNotFoundException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(List.of());
         } catch (Exception ex) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(List.of());
@@ -83,10 +83,10 @@ public class UserController {
     public ResponseEntity<?> getById(@PathVariable UUID id) {
         try {
             return ResponseEntity.ok(userService.findById(id));
-        }catch (UsernameNotFoundException e){
-            return new ResponseEntity<>(e.getMessage(),HttpStatus.NOT_FOUND);
-        }catch (Exception ex) {
-            return new ResponseEntity<>("Internal server error",HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (UsernameNotFoundException e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+        } catch (Exception ex) {
+            return new ResponseEntity<>("Internal server error", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -104,9 +104,9 @@ public class UserController {
             @ApiResponse(responseCode = "500", description = "Lỗi nội bộ",
                     content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Internal Server Error\" }")))
     })
-    public ResponseEntity<?> updateUser(@PathVariable UUID id,@RequestBody UserUpdate userUpdate) {
+    public ResponseEntity<?> updateUser(@PathVariable UUID id, @RequestBody UserUpdate userUpdate) {
         try {
-            UserUpdate updatedUser = userService.updateUser(id,userUpdate);
+            UserUpdate updatedUser = userService.updateUser(id, userUpdate);
             return new ResponseEntity<>(updatedUser, HttpStatus.OK);
         } catch (UsernameNotFoundException ex) {
             return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
@@ -127,12 +127,12 @@ public class UserController {
                     content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Internal Server Error\" }"))),
     })
     public ResponseEntity<?> deleteUser(@PathVariable UUID id) {
-        try{
+        try {
             userService.deleteUser(id);
             return ResponseEntity.ok("Delete success");
-        }catch (UsernameNotFoundException ex){
+        } catch (UsernameNotFoundException ex) {
             return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
-        }catch (Exception ex) {
+        } catch (Exception ex) {
             return new ResponseEntity<>("Internal Server Error", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

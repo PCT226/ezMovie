@@ -8,7 +8,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 public class HttpServletRequest extends HttpServletRequestWrapper {
-    private byte[] body;
+    private final byte[] body;
 
     public HttpServletRequest(jakarta.servlet.http.HttpServletRequest request) throws IOException {
         super(request);

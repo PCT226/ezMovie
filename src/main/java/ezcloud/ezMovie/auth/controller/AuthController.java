@@ -1,29 +1,25 @@
 package ezcloud.ezMovie.auth.controller;
 
-import ezcloud.ezMovie.exception.EmailAlreadyExistsException;
+import ezcloud.ezMovie.auth.model.payload.ChangePasswordRequest;
 import ezcloud.ezMovie.auth.model.payload.JwtResponse;
 import ezcloud.ezMovie.auth.model.payload.LoginRequest;
 import ezcloud.ezMovie.auth.model.payload.RegisterRequest;
 import ezcloud.ezMovie.auth.service.AuthService;
+import ezcloud.ezMovie.exception.EmailAlreadyExistsException;
 import ezcloud.ezMovie.exception.EmailNotFoundException;
-import io.swagger.v3.oas.annotations.Parameter;
-import lombok.RequiredArgsConstructor;
-import ezcloud.ezMovie.auth.model.payload.ChangePasswordRequest;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -69,13 +65,13 @@ public class AuthController {
     @Operation(summary = "User registration", description = "Register a new user")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Người dùng được đăng ký thành công.",
-                    content =  @Content(examples = @ExampleObject(value = "{\"success\":\"User registered successfully\"}"))),
+                    content = @Content(examples = @ExampleObject(value = "{\"success\":\"User registered successfully\"}"))),
             @ApiResponse(responseCode = "400", description = "Tên người dùng hoặc email đã tồn tại.",
                     content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Bad Request\" }"))),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ.",
                     content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Internal Server Error\" }")))
     })
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request){
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         try {
             authService.register(request);
         } catch (Exception ex) {
@@ -90,9 +86,9 @@ public class AuthController {
             description = "Xác thực tài khoản đã đăng ký bằng mã xác thực.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Tài khoản được xác thực thành công",
-                    content =  @Content(examples = @ExampleObject(value = "{\"error\":\"Account verified successfully\"}"))),
+                    content = @Content(examples = @ExampleObject(value = "{\"error\":\"Account verified successfully\"}"))),
             @ApiResponse(responseCode = "400", description = "Mã xác thực không hợp lệ hoặc không tìm thấy",
-                    content =  @Content(examples = @ExampleObject(value = "{\"error\":\"Verify code incorrect\"}")))
+                    content = @Content(examples = @ExampleObject(value = "{\"error\":\"Verify code incorrect\"}")))
     })
     public ResponseEntity<String> verifyAccountRegister(
             @Parameter(description = "Mã xác thực của tài khoản")
@@ -115,9 +111,9 @@ public class AuthController {
                     content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Email not found\" }")))
     })
     public ResponseEntity<String> forgotPassword(@RequestParam("email") String email) {
-        try{
+        try {
             authService.forgotPassword(email);
-        }catch (Exception ex){
+        } catch (Exception ex) {
             return new ResponseEntity<>("An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return ResponseEntity.ok("Password reset code sent successfully");
@@ -132,11 +128,11 @@ public class AuthController {
                     content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Invalid or expired reset code\" }")))
     })
     public ResponseEntity<String> resetPassword(@RequestParam("resetCode") String resetCode, @RequestParam("newPassword") String newPassword) {
-       try{
-           authService.resetPassword(resetCode,newPassword);
-       }catch (UsernameNotFoundException ex){
-           return new ResponseEntity<>(ex.getMessage(),HttpStatus.NOT_FOUND);
-       }
+        try {
+            authService.resetPassword(resetCode, newPassword);
+        } catch (UsernameNotFoundException ex) {
+            return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
+        }
         return ResponseEntity.ok("Password reset successfully");
     }
 
@@ -152,11 +148,11 @@ public class AuthController {
     })
     public ResponseEntity<String> changePassword(@RequestBody ChangePasswordRequest request, HttpServletRequest httpRequest) {
         try {
-            authService.changePassword(request,httpRequest);
-        }catch (EmailAlreadyExistsException ex){
-            return new ResponseEntity<>(ex.getMessage(),HttpStatus.NOT_FOUND);
-        }catch (RuntimeException ex){
-            return new ResponseEntity<>(ex.getMessage(),HttpStatus.BAD_REQUEST);
+            authService.changePassword(request, httpRequest);
+        } catch (EmailAlreadyExistsException ex) {
+            return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
+        } catch (RuntimeException ex) {
+            return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
         }
         return ResponseEntity.ok("Password changed successfully");
     }

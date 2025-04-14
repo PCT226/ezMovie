@@ -6,9 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-
 @Repository
-public interface ScreenRepository extends JpaRepository<Screen,Integer> {
+public interface ScreenRepository extends JpaRepository<Screen, Integer> {
     Page<Screen> findAllByIsDeleted(boolean isDeleted, Pageable pageable);
 }

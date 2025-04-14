@@ -1,13 +1,11 @@
 package ezcloud.ezMovie.booking.controller;
 
-import ezcloud.ezMovie.booking.model.dto.TempTicket;
 import ezcloud.ezMovie.booking.model.dto.TicketDto;
 import ezcloud.ezMovie.booking.model.payload.BookingRequestDTO;
 import ezcloud.ezMovie.booking.service.TicketService;
 import ezcloud.ezMovie.exception.TicketHeldException;
 import ezcloud.ezMovie.manage.model.dto.SeatDto;
 import ezcloud.ezMovie.manage.model.enities.Response;
-import ezcloud.ezMovie.manage.model.enities.Seat;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -51,28 +49,28 @@ public class TicketController {
                     bookingRequest.getDiscountCode()
             );
             return ResponseEntity.ok(ticket);
-        } catch (TicketHeldException ex){
+        } catch (TicketHeldException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Tickets have been booked or held");
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.GATEWAY_TIMEOUT).body(e.getMessage());
-        }   catch (Exception e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
         }
     }
-    
+
     @Operation(summary = "Book tickets", description = "View Booking History.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Booking successful",
                     content = @Content(examples = @ExampleObject(value =
                             "{ \n" +
-                            "    \"orderId\": \"21c1d9ff-b9a1-4020-93a8-c685f41730ed\",\n" +
-                            "    \"totalPrice\": \"30000000\",\n" +
-                            "    \"orderInfo\": \"1\",\n" +
-                            "    \"paymentTime\": \"20241016110055\",\n" +
-                            "    \"message\": \"Payment Success\",\n" +
-                            "    \"transactionId\": \"14616134\",\n" +
-                            "    \"status\": \"success\"\n" +
-                            "}"))),
+                                    "    \"orderId\": \"21c1d9ff-b9a1-4020-93a8-c685f41730ed\",\n" +
+                                    "    \"totalPrice\": \"30000000\",\n" +
+                                    "    \"orderInfo\": \"1\",\n" +
+                                    "    \"paymentTime\": \"20241016110055\",\n" +
+                                    "    \"message\": \"Payment Success\",\n" +
+                                    "    \"transactionId\": \"14616134\",\n" +
+                                    "    \"status\": \"success\"\n" +
+                                    "}"))),
             @ApiResponse(responseCode = "400", description = "Invalid request parameters",
                     content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Internal Server Error\" }"))),
             @ApiResponse(responseCode = "404", description = "Showtime or seats not found",
@@ -85,10 +83,43 @@ public class TicketController {
         try {
             List<TicketDto> tickets = ticketService.findAllByUserId(id);
             return ResponseEntity.ok(tickets);
-        }catch (RuntimeException ex){
+        } catch (RuntimeException ex) {
             return ResponseEntity.status(HttpStatus.GATEWAY_TIMEOUT).body(ex.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+    }
+
+    @GetMapping("/getTempTicketInfo/{id}")
+    public ResponseEntity<?> getSeatsFromRedis(@PathVariable String id) {
+        try {
+            List<SeatDto> tickets = ticketService.getTempTicketInfo(id);
+            return ResponseEntity.ok(tickets);
+        } catch (RuntimeException ex) {
+            return ResponseEntity.status(HttpStatus.GATEWAY_TIMEOUT).body(ex.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+    }
+
+    @Operation(summary = "Generate ticket code", description = "Generate and save a unique ticket code for a specific ticket")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Ticket code generated successfully",
+                    content = @Content(examples = @ExampleObject(value = "{ \"ticketCode\": \"ABC123\" }"))),
+            @ApiResponse(responseCode = "404", description = "Ticket not found",
+                    content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Ticket not found\" }"))),
+            @ApiResponse(responseCode = "500", description = "Internal server error",
+                    content = @Content(examples = @ExampleObject(value = "{ \"error\": \"Internal Server Error\" }")))
+    })
+    @PostMapping("/generate-code/{ticketId}")
+    public ResponseEntity<?> generateTicketCode(@PathVariable UUID ticketId) {
+        try {
+            String ticketCode = ticketService.generateAndSaveTicketCode(ticketId);
+            return ResponseEntity.ok(ticketCode);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
         }
     }
 }

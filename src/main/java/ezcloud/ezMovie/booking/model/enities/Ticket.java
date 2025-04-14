@@ -38,4 +38,5 @@ public class Ticket {
     private LocalDateTime updatedAt;
     private boolean isDeleted = false;
     private boolean isPaid = false;
+    private String ticketCode;
 }

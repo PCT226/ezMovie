@@ -14,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -45,14 +44,13 @@ public class ScreenController {
     }
 
 
-
     @GetMapping("/{id}")
     @Operation(summary = "Get screens info", description = "Screen Info")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Chi tiết phòng chiếu phim được lấy thành công."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi lấy phòng chiếu phim.")
     })
-    public ResponseEntity<Screen> getById(@PathVariable int id){
+    public ResponseEntity<Screen> getById(@PathVariable int id) {
         return ResponseEntity.ok(screenService.findById(id));
     }
 
@@ -99,7 +97,7 @@ public class ScreenController {
             @ApiResponse(responseCode = "404", description = "Không tìm thấy phòng chiếu phim với ID đã cho."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi xóa phòng chiếu phim.")
     })
-    public ResponseEntity<?> deleteScreen(@PathVariable int id){
+    public ResponseEntity<?> deleteScreen(@PathVariable int id) {
         screenService.deleteScreen(id);
         return ResponseEntity.ok("Xóa thành công");
 

@@ -1,8 +1,5 @@
 package ezcloud.ezMovie.auth.service;
 
-import ezcloud.ezMovie.exception.*;
-import ezcloud.ezMovie.jwt.CodeGenerator;
-import ezcloud.ezMovie.jwt.JwtService;
 import ezcloud.ezMovie.auth.model.enities.CustomUserDetail;
 import ezcloud.ezMovie.auth.model.enities.User;
 import ezcloud.ezMovie.auth.model.payload.ChangePasswordRequest;
@@ -10,10 +7,11 @@ import ezcloud.ezMovie.auth.model.payload.JwtResponse;
 import ezcloud.ezMovie.auth.model.payload.LoginRequest;
 import ezcloud.ezMovie.auth.model.payload.RegisterRequest;
 import ezcloud.ezMovie.auth.repository.UserRepository;
-
+import ezcloud.ezMovie.exception.*;
+import ezcloud.ezMovie.jwt.CodeGenerator;
+import ezcloud.ezMovie.jwt.JwtService;
 import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -41,22 +39,22 @@ public class AuthService {
     @Autowired
     private UserRepository userRepository;
 
-    public JwtResponse login(LoginRequest loginRequest){
-        if(!userService.existsByEmail(loginRequest.getEmail())){
+    public JwtResponse login(LoginRequest loginRequest) {
+        if (!userService.existsByEmail(loginRequest.getEmail())) {
             throw new EmailNotFoundException("Email not found");
         }
         authenticateByEmail(loginRequest.getEmail(), loginRequest.getPassword());
-        UserDetails userDetails=userService.loadUserByEmail(loginRequest.getEmail());
+        UserDetails userDetails = userService.loadUserByEmail(loginRequest.getEmail());
         String token = jwtService.generateToken((CustomUserDetail) userDetails);
-        return  new JwtResponse(token);
+        return new JwtResponse(token);
     }
 
     public void register(RegisterRequest request) throws MessagingException {
         if (userService.existsByUsername(request.getUsername())) {
-            throw new UsernameAlreadyExistException("Username already exist: "+request.getUsername());
+            throw new UsernameAlreadyExistException("Username already exist: " + request.getUsername());
         }
         if (userService.existsByEmail(request.getEmail())) {
-            throw new EmailAlreadyExistsException("Email already exist: "+request.getEmail());
+            throw new EmailAlreadyExistsException("Email already exist: " + request.getEmail());
         }
 
         if (!isValidEmail(request.getEmail())) {
@@ -94,7 +92,7 @@ public class AuthService {
     public void forgotPassword(String email) throws MessagingException {
         User user = userService.findByEmail(email);
         if (user == null) {
-           throw new EmailAlreadyExistsException("Not found Email: "+email);
+            throw new EmailAlreadyExistsException("Not found Email: " + email);
         }
         String resetCode = CodeGenerator.generateVerificationCode(6);
         user.setResetPasswordCode(resetCode);
@@ -104,7 +102,7 @@ public class AuthService {
         emailService.sendEmail(user.getEmail(), "Password Reset Code", body);
     }
 
-    public void resetPassword( String resetCode, String newPassword) {
+    public void resetPassword(String resetCode, String newPassword) {
         User user = userService.findByResetPasswordCode(resetCode);
         if (user == null) {
             throw new InvalidResetCodeException("Invalid or expired reset code");
@@ -133,14 +131,17 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userService.saveUser(user);
     }
+
     private void authenticateByEmail(String email, String password) {
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
     }
+
     private boolean isValidEmail(String email) {
         String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*$";
         Pattern pattern = Pattern.compile(emailRegex);
         return pattern.matcher(email).matches();
     }
+
     public JwtResponse loginGoogle(OAuth2User oAuth2User) {
         String email = oAuth2User.getAttribute("email");
         String name = oAuth2User.getAttribute("name");

@@ -3,7 +3,6 @@ package ezcloud.ezMovie.log;
 import jakarta.servlet.ReadListener;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 
 public class ServletInputStream extends jakarta.servlet.ServletInputStream {
     private final ByteArrayInputStream byteArrayInputStream;

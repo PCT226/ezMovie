@@ -2,8 +2,8 @@ package ezcloud.ezMovie.controller;
 
 import ezcloud.ezMovie.manage.model.dto.MovieInfo;
 import ezcloud.ezMovie.manage.model.enities.Response;
-import ezcloud.ezMovie.rateLimit.RateLimit;
 import ezcloud.ezMovie.manage.service.MovieService;
+import ezcloud.ezMovie.rateLimit.RateLimit;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -24,8 +24,9 @@ import java.util.List;
 public class MovieController {
     @Autowired
     private MovieService movieService;
+
     @GetMapping(value = "/")
-    @RateLimit(ipCapacity = 10,ipRefillDuration = 60,ipRefillTokens = 5,systemCapacity = 100,systemRefillDuration = 60,systemRefillTokens = 50)
+    @RateLimit(ipCapacity = 10, ipRefillDuration = 60, ipRefillTokens = 5, systemCapacity = 100, systemRefillDuration = 60, systemRefillTokens = 50)
     @Operation(summary = "Get all movies", description = "Retrieve a list of all movies")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Danh sách phim được lấy thành công."),
@@ -36,7 +37,7 @@ public class MovieController {
             @RequestParam(defaultValue = "0") int page,
 
             @Parameter(description = "Kích thước mỗi trang", example = "10")
-            @RequestParam(defaultValue = "10") int size){
+            @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(movieService.findAll(pageable));
     }
@@ -47,7 +48,7 @@ public class MovieController {
             @ApiResponse(responseCode = "200", description = "Thông tin phim được lấy thành công."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi lấy thông tin phim.")
     })
-    public ResponseEntity<?> getById(@PathVariable int id){
+    public ResponseEntity<?> getById(@PathVariable int id) {
         return ResponseEntity.ok(movieService.findById(id));
     }
 
@@ -67,7 +68,7 @@ public class MovieController {
             @Parameter(description = "Kích thước mỗi trang", example = "10")
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        List<MovieInfo> movies = movieService.searchMovies(title, genre, actor,pageable);
+        List<MovieInfo> movies = movieService.searchMovies(title, genre, actor, pageable);
         if (movies.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
@@ -81,7 +82,7 @@ public class MovieController {
             @ApiResponse(responseCode = "400", description = "Yêu cầu không hợp lệ. Dữ liệu phim không hợp lệ hoặc bị thiếu."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi tạo phim.")
     })
-    public ResponseEntity<Response<MovieInfo>> create(@RequestBody MovieInfo movieInfo){
+    public ResponseEntity<Response<MovieInfo>> create(@RequestBody MovieInfo movieInfo) {
         return ResponseEntity.ok(movieService.createMovie(movieInfo));
     }
 
@@ -92,7 +93,7 @@ public class MovieController {
             @ApiResponse(responseCode = "400", description = "Yêu cầu không hợp lệ. Dữ liệu phim không hợp lệ hoặc bị thiếu."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi tạo phim.")
     })
-    public ResponseEntity<Response<MovieInfo>> update(@RequestBody MovieInfo movieInfo){
+    public ResponseEntity<Response<MovieInfo>> update(@RequestBody MovieInfo movieInfo) {
         return ResponseEntity.ok(movieService.updateMovie(movieInfo));
     }
 
@@ -103,7 +104,7 @@ public class MovieController {
             @ApiResponse(responseCode = "404", description = "Không tìm thấy phim với ID đã cho."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi xóa phim.")
     })
-    public ResponseEntity<?> deleteMovie(@PathVariable int id){
+    public ResponseEntity<?> deleteMovie(@PathVariable int id) {
         movieService.deleteMovie(id);
         return ResponseEntity.ok("Xóa thành công");
 

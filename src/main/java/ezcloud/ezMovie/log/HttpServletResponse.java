@@ -2,12 +2,14 @@ package ezcloud.ezMovie.log;
 
 import jakarta.servlet.http.HttpServletResponseWrapper;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 
 public class HttpServletResponse extends HttpServletResponseWrapper {
-    private ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    private jakarta.servlet.ServletOutputStream servletOutputStream;
+    private final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+    private final jakarta.servlet.ServletOutputStream servletOutputStream;
 
     public HttpServletResponse(jakarta.servlet.http.HttpServletResponse response) {
         super(response);

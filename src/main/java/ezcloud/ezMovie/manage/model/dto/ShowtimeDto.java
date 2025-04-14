@@ -1,7 +1,6 @@
 package ezcloud.ezMovie.manage.model.dto;
 
 
-
 import lombok.Getter;
 import lombok.Setter;
 

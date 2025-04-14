@@ -15,8 +15,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class ScreenService {
@@ -52,9 +50,9 @@ public class ScreenService {
     }
 
     public Screen createScreen(CreateScreenRequest request) {
-        Cinema cinema=cinemaRepository.findById(request.getCinemaId())
-                .orElseThrow(()->new RuntimeException("Not found Cinema"));
-        Screen screen=new Screen();
+        Cinema cinema = cinemaRepository.findById(request.getCinemaId())
+                .orElseThrow(() -> new RuntimeException("Not found Cinema"));
+        Screen screen = new Screen();
         screen.setCinema(cinema);
         screen.setScreenNumber(request.getScreenNumber());
         screen.setCapacity(request.getCapacity());
@@ -64,26 +62,27 @@ public class ScreenService {
         return screenRepository.save(screen);
     }
 
-public Screen updateScreen(UpdateScreenRequest request) {
-    // Tìm kiếm screen hiện tại dựa trên ID
-    Screen existScreen = screenRepository.findById(request.getScreenId())
-            .orElseThrow(() -> new RuntimeException("Screen not found"));
+    public Screen updateScreen(UpdateScreenRequest request) {
+        // Tìm kiếm screen hiện tại dựa trên ID
+        Screen existScreen = screenRepository.findById(request.getScreenId())
+                .orElseThrow(() -> new RuntimeException("Screen not found"));
 
-    // Kiểm tra nếu CinemaId trong request có khác với Cinema hiện tại không
-    if (request.getCinemaId() != null && !request.getCinemaId().equals(existScreen.getCinema().getId())) {
-        Cinema newCinema = cinemaRepository.findById(request.getCinemaId())
-                .orElseThrow(() -> new RuntimeException("Cinema not found"));
-        existScreen.setCinema(newCinema);
+        // Kiểm tra nếu CinemaId trong request có khác với Cinema hiện tại không
+        if (request.getCinemaId() != null && !request.getCinemaId().equals(existScreen.getCinema().getId())) {
+            Cinema newCinema = cinemaRepository.findById(request.getCinemaId())
+                    .orElseThrow(() -> new RuntimeException("Cinema not found"));
+            existScreen.setCinema(newCinema);
+        }
+        // Cập nhật thông tin khác của screen
+        existScreen.setScreenNumber(request.getScreenNumber());
+        existScreen.setCapacity(request.getCapacity());
+        existScreen.setUpdatedAt(LocalDateTime.now());
+        // Lưu lại screen sau khi cập nhật
+        return screenRepository.save(existScreen);
     }
-    // Cập nhật thông tin khác của screen
-    existScreen.setScreenNumber(request.getScreenNumber());
-    existScreen.setCapacity(request.getCapacity());
-    existScreen.setUpdatedAt(LocalDateTime.now());
-    // Lưu lại screen sau khi cập nhật
-    return screenRepository.save(existScreen);
-}
-    public void deleteScreen(int id){
-        Screen screen=screenRepository.findById(id).orElseThrow(()->new RuntimeException("Not found Screen to Delete"));
+
+    public void deleteScreen(int id) {
+        Screen screen = screenRepository.findById(id).orElseThrow(() -> new RuntimeException("Not found Screen to Delete"));
         screen.setDeleted(true);
         screenRepository.save(screen);
     }

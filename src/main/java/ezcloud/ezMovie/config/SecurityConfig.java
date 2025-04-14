@@ -1,14 +1,10 @@
 package ezcloud.ezMovie.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import ezcloud.ezMovie.auth.model.payload.JwtResponse;
-import ezcloud.ezMovie.auth.service.AuthService;
 import ezcloud.ezMovie.auth.service.CustomOAuth2SuccessHandler;
-import ezcloud.ezMovie.jwt.JwtAuthFilter;
 import ezcloud.ezMovie.auth.service.UserService;
+import ezcloud.ezMovie.jwt.JwtAuthFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -21,10 +17,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
@@ -33,7 +26,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthFilter jwtAuthFilter;
     private static final String[] WHITE_LIST_URL = {
             "/api/v1/auth/**",
             "/swagger-ui/**",
@@ -43,8 +35,11 @@ public class SecurityConfig {
             "/oauth2/**",
             "/payment/**",
             "/ticket/**",
-            "/movie/**"
+            "/movie/**",
+            "/cinema/**",
+            "/showtime/**"
     };
+    private final JwtAuthFilter jwtAuthFilter;
     private final CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
 
     @Bean
@@ -54,7 +49,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(WHITE_LIST_URL).permitAll() // Whitelisting some paths from authentication
                         .anyRequest().permitAll()) // All other requests must be authenticated
-                .oauth2Login(oauth2 ->oauth2
+                .oauth2Login(oauth2 -> oauth2
                         .successHandler(customOAuth2SuccessHandler) // Xử lý thành công
 
                         .failureHandler((request, response, authentication) -> {

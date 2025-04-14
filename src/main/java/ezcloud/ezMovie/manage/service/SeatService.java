@@ -41,13 +41,13 @@ public class SeatService {
 
 
     public Page<SeatDto> getSeatsByShowtimeId(Integer showtimeId, Pageable pageable) {
-        List<SeatDto> listSeat= new ArrayList<>();
+        List<SeatDto> listSeat = new ArrayList<>();
 
         Showtime showtime = showtimeRepository.findById(showtimeId)
                 .orElseThrow(() -> new RuntimeException("Not found Showtime"));
 
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime endTime = LocalDateTime.of(showtime.getDate(),showtime.getEndTime());
+        LocalDateTime endTime = LocalDateTime.of(showtime.getDate(), showtime.getEndTime());
         long ttlSeconds = Duration.between(now, endTime).getSeconds();
 
         List<Seat> availableSeats = seatRepository.findAllByScreenIdAndIsDeletedFalse(showtime.getScreen().getId());
@@ -72,8 +72,8 @@ public class SeatService {
             listSeat.add(seatDto);
         }
 
-        redisTemplate.opsForValue().set("listSeat::"+showtimeId, listSeat);
-        redisTemplate.expire("listSeat::"+showtimeId, ttlSeconds, TimeUnit.SECONDS);
+        redisTemplate.opsForValue().set("listSeat::" + showtimeId, listSeat);
+        redisTemplate.expire("listSeat::" + showtimeId, ttlSeconds, TimeUnit.SECONDS);
 
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), listSeat.size());
@@ -81,8 +81,8 @@ public class SeatService {
 
     }
 
-    public List<SeatDto> findAllByScreenId(int screenId,Pageable pageable) {
-        List<Seat> seats = seatRepository.findAllByScreenIdAndIsDeletedFalse(screenId,pageable);
+    public List<SeatDto> findAllByScreenId(int screenId, Pageable pageable) {
+        List<Seat> seats = seatRepository.findAllByScreenIdAndIsDeletedFalse(screenId, pageable);
 
         return seats.stream().map(seat -> {
 
@@ -94,10 +94,11 @@ public class SeatService {
             return seatDTO;
         }).collect(Collectors.toList());
     }
-    public void createSeat(CreateSeatRequest request){
-        Screen screen= screenRepository.findById(request.getScreenId())
-                .orElseThrow(()->new RuntimeException("Not found Screen"));
-        Seat seat=new Seat();
+
+    public void createSeat(CreateSeatRequest request) {
+        Screen screen = screenRepository.findById(request.getScreenId())
+                .orElseThrow(() -> new RuntimeException("Not found Screen"));
+        Seat seat = new Seat();
         seat.setCreatedAt(LocalDateTime.now());
         seat.setUpdatedAt(LocalDateTime.now());
         seat.setSeatNumber(request.getSeatNumber());
@@ -106,9 +107,10 @@ public class SeatService {
 
         seatRepository.save(seat);
     }
-    public Seat updateSeat(UpdateSeatRequest request){
-        Seat s1= seatRepository.findById(request.getSeatId())
-                .orElseThrow(()->new RuntimeException("Not found Seat"));
+
+    public Seat updateSeat(UpdateSeatRequest request) {
+        Seat s1 = seatRepository.findById(request.getSeatId())
+                .orElseThrow(() -> new RuntimeException("Not found Seat"));
         s1.setUpdatedAt(LocalDateTime.now());
         s1.setSeatNumber(request.getSeatNumber());
         s1.setPrice(request.getPrice());
@@ -116,9 +118,10 @@ public class SeatService {
 
         return seatRepository.save(s1);
     }
-    public void deleteSeat(int seatId){
-        Seat seat=seatRepository.findById(seatId)
-                .orElseThrow(()->new RuntimeException("Not found Seat"));
+
+    public void deleteSeat(int seatId) {
+        Seat seat = seatRepository.findById(seatId)
+                .orElseThrow(() -> new RuntimeException("Not found Seat"));
         seat.setDeleted(true);
         seatRepository.save(seat);
     }

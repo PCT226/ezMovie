@@ -20,13 +20,13 @@ public class Discount {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(nullable = false,unique = true)
+    @Column(nullable = false, unique = true)
     private String code;
     @Column(nullable = false)
     private String description;
     @Column(nullable = false)
     private BigDecimal percentage;
-    @Column(nullable = false,updatable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private boolean isDeleted = false;

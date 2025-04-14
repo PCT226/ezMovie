@@ -4,12 +4,11 @@ import ezcloud.ezMovie.exception.MovieNotFound;
 import ezcloud.ezMovie.manage.model.dto.MovieInfo;
 import ezcloud.ezMovie.manage.model.enities.Movie;
 import ezcloud.ezMovie.manage.model.enities.Response;
-import ezcloud.ezMovie.manage.model.enities.Screen;
 import ezcloud.ezMovie.manage.repository.MovieRepository;
 import ezcloud.ezMovie.specification.MovieSpecification;
-import org.hibernate.annotations.Cache;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,49 +26,59 @@ public class MovieService {
     private MovieRepository movieRepository;
     @Autowired
     private ModelMapper mapper;
-    @Cacheable(value = "movies",key = "'allMovie'")
-    public List<MovieInfo> findAll(Pageable pageable){
-        Page<Movie> movies=movieRepository.findAllByIsDeletedFalse(pageable);
+    @Autowired
+    private CacheManager cacheManager;
+
+    @Cacheable(value = "movies", key = "'allMovie'")
+    public List<MovieInfo> findAll(Pageable pageable) {
+        Page<Movie> movies = movieRepository.findAllByIsDeletedFalse(pageable);
         return movies.stream().map(movie -> mapper.map(movie, MovieInfo.class))
                 .collect(Collectors.toList());
     }
 
     @Cacheable(value = "movies")
-    public Response<MovieInfo> findById(int id){
-        Movie movie= movieRepository.findById(id)
-                .orElseThrow(()-> new MovieNotFound("Not found Movie with ID: "+id));
-        return new Response<>(0,mapper.map(movie, MovieInfo.class));
+    public Response<MovieInfo> findById(int id) {
+        Movie movie = movieRepository.findById(id)
+                .orElseThrow(() -> new MovieNotFound("Not found Movie with ID: " + id));
+        return new Response<>(0, mapper.map(movie, MovieInfo.class));
     }
 
-    public List<MovieInfo> searchMovies(String title, String genre, String actor,Pageable pageable) {
+    public List<MovieInfo> searchMovies(String title, String genre, String actor, Pageable pageable) {
         Specification<Movie> spec = MovieSpecification.searchMovies(title, genre, actor)
                 .and((root, query, criteriaBuilder) ->
-                        criteriaBuilder.equal(root.get("isDeleted"), false)); // Thêm điều kiện isDeleted = false
-        Page<Movie> movies= movieRepository.findAll(spec,pageable);
+                        criteriaBuilder.equal(root.get("isDeleted"), false));
 
-        return movies.stream().map(movie -> mapper.map(movie,MovieInfo.class))
+        Page<Movie> movies = movieRepository.findAll(spec, pageable);
+
+        return movies.stream()
+                .map(movie -> mapper.map(movie, MovieInfo.class))
                 .collect(Collectors.toList());
     }
-    public Response<MovieInfo> createMovie(MovieInfo movieInfo){
-        Movie movie=new Movie();
-        mapper.map(movieInfo,movie);
+
+    public Response<MovieInfo> createMovie(MovieInfo movieInfo) {
+        Movie movie = new Movie();
+        mapper.map(movieInfo, movie);
         movie.setCreatedAt(LocalDateTime.now());
         movie.setUpdatedAt(LocalDateTime.now());
-        Movie savedMovie= movieRepository.save(movie);
-        return new Response<>(0,mapper.map(savedMovie, MovieInfo.class));
+        Movie savedMovie = movieRepository.save(movie);
+        cacheManager.getCache("movies").clear();
+
+        return new Response<>(0, mapper.map(savedMovie, MovieInfo.class));
     }
-    public Response<MovieInfo> updateMovie(MovieInfo movieInfo){
-        Movie movie=movieRepository.findById(movieInfo.getId()).orElseThrow(()-> new MovieNotFound("Not found Movie with ID: "+movieInfo.getId()));
-        mapper.map(movieInfo,movie);
+
+    public Response<MovieInfo> updateMovie(MovieInfo movieInfo) {
+        Movie movie = movieRepository.findById(movieInfo.getId()).orElseThrow(() -> new MovieNotFound("Not found Movie with ID: " + movieInfo.getId()));
+        mapper.map(movieInfo, movie);
         movie.setUpdatedAt(LocalDateTime.now());
-        Movie updatedMovie= movieRepository.save(movie);
-        return new Response<>(0,mapper.map(updatedMovie,MovieInfo.class));
+        Movie updatedMovie = movieRepository.save(movie);
+        return new Response<>(0, mapper.map(updatedMovie, MovieInfo.class));
 
     }
-    public void deleteMovie(int id){
+
+    public void deleteMovie(int id) {
         Optional<Movie> del = movieRepository.findById(id);
-        if (del.isPresent()){
-            Movie movie=del.get();
+        if (del.isPresent()) {
+            Movie movie = del.get();
             movie.setDeleted(true);
             movieRepository.save(movie);
         }

@@ -25,6 +25,7 @@ import java.util.List;
 public class SeatController {
     @Autowired
     private SeatService seatService;
+
     @GetMapping("/{id}")
     @Operation(summary = "Get all seats by screenId", description = "Retrieve a list of all screens")
     @ApiResponses(value = {
@@ -40,8 +41,9 @@ public class SeatController {
             @RequestParam(defaultValue = "10") int size) {
 
         Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(seatService.findAllByScreenId(id,pageable));
+        return ResponseEntity.ok(seatService.findAllByScreenId(id, pageable));
     }
+
     @GetMapping("/listSeat")
     @Operation(summary = "Get all seats by showtimeId", description = "Retrieve a list seat for showtime")
     @ApiResponses(value = {
@@ -59,7 +61,7 @@ public class SeatController {
 
         Pageable pageable = PageRequest.of(page, size);
         try {
-            return ResponseEntity.ok(seatService.getSeatsByShowtimeId(showtimeId,pageable));
+            return ResponseEntity.ok(seatService.getSeatsByShowtimeId(showtimeId, pageable));
         } catch (RuntimeException ex) {
             return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
         } catch (Exception ex) {
@@ -111,7 +113,7 @@ public class SeatController {
             @ApiResponse(responseCode = "404", description = "Không tìm thấy ghế với ID đã cho."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi xóa ghế.")
     })
-    public ResponseEntity<?> deleteSeat(@PathVariable int id){
+    public ResponseEntity<?> deleteSeat(@PathVariable int id) {
         seatService.deleteSeat(id);
         return ResponseEntity.ok("Xóa thành công");
 

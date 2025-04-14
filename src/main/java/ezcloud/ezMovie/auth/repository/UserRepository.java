@@ -14,11 +14,15 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     User findByEmail(String email);
 
     User findByUsername(String username);
+
     User findByVerificationCode(String verificationCode);
+
     User findByResetPasswordCode(String resetPasswordCode);
 
     boolean existsByUsername(String username);
+
     boolean existsByEmail(String email);
+
     List<User> findAll();
 
     Page<User> findAllByIsDeleted(boolean isDeleted, Pageable pageable);

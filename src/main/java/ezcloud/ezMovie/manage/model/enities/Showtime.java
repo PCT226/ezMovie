@@ -35,7 +35,7 @@ public class Showtime {
     private LocalTime startTime;
     @Column(nullable = false)
     private LocalTime endTime;
-    @Column(nullable = false,updatable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private boolean isDeleted = false;

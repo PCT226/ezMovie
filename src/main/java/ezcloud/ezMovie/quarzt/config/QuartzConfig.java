@@ -1,12 +1,7 @@
 package ezcloud.ezMovie.quarzt.config;
 
 import ezcloud.ezMovie.quarzt.job.ShowtimeJob;
-import org.quartz.JobBuilder;
-import org.quartz.JobDetail;
-import org.quartz.Trigger;
-import org.quartz.TriggerBuilder;
-import org.quartz.CronScheduleBuilder;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.quartz.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

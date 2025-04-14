@@ -18,7 +18,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -44,6 +43,7 @@ public class ShowtimeController {
         Pageable pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(showtimeService.getUpcomingShowtimes(pageable));
     }
+
     @GetMapping("/findShowtime")
     @Operation(summary = "Get all showtime available for movie", description = "Retrieve a list of all showtime available for movie")
     @ApiResponses(value = {
@@ -52,7 +52,7 @@ public class ShowtimeController {
     })
     public ResponseEntity<List<ShowtimeDto>> getAll(
             @RequestParam Integer movieId,
-            @RequestParam(required = false) Integer cinemaId ,
+            @RequestParam(required = false) Integer cinemaId,
             @Parameter(description = "The date in yyyy-MM-dd format", schema = @Schema(type = "string", format = "date"))
             @RequestParam(required = false) LocalDate date,
 
@@ -62,7 +62,7 @@ public class ShowtimeController {
             @RequestParam(defaultValue = "10") int size) {
 
         Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(showtimeService.getUpcomingShowtimesForMovie(movieId,cinemaId,date,pageable));
+        return ResponseEntity.ok(showtimeService.getUpcomingShowtimesForMovie(movieId, cinemaId, date, pageable));
     }
 
 
@@ -109,9 +109,26 @@ public class ShowtimeController {
             @ApiResponse(responseCode = "404", description = "Không tìm thấy lịch chiếu phim với ID đã cho."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi xóa lịch chiếu phim.")
     })
-    public ResponseEntity<?> deleteShowtime(@PathVariable int id){
+    public ResponseEntity<?> deleteShowtime(@PathVariable int id) {
         showtimeService.deleteShowtime(id);
         return ResponseEntity.ok("Xóa thành công");
+    }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "Get showtime by ID", description = "Retrieve showtime details by its ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lấy thông tin lịch chiếu thành công"),
+            @ApiResponse(responseCode = "404", description = "Không tìm thấy lịch chiếu với ID đã cho"),
+            @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi lấy thông tin lịch chiếu")
+    })
+    public ResponseEntity<ShowtimeDto> getShowtimeById(@PathVariable int id) {
+        try {
+            ShowtimeDto showtime = showtimeService.getShowtimeById(id);
+            return ResponseEntity.ok(showtime);
+        } catch (RuntimeException ex) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }

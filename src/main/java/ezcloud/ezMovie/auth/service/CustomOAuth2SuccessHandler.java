@@ -2,7 +2,8 @@ package ezcloud.ezMovie.auth.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ezcloud.ezMovie.auth.model.payload.JwtResponse;
-import ezcloud.ezMovie.auth.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.core.Authentication;
@@ -10,9 +11,6 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 
@@ -31,8 +29,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException {
         // Kiểm tra nếu Authentication là OAuth2AuthenticationToken
-        if (authentication instanceof OAuth2AuthenticationToken) {
-            OAuth2AuthenticationToken authToken = (OAuth2AuthenticationToken) authentication;
+        if (authentication instanceof OAuth2AuthenticationToken authToken) {
             OAuth2User oAuth2User = authToken.getPrincipal();
 
             // Gọi phương thức để tạo JWT
