@@ -14,6 +14,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -120,6 +123,42 @@ public class TicketController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
+        }
+    }
+
+    @GetMapping("/admin/all")
+    @Operation(summary = "Get all tickets with pagination", description = "Retrieve a paginated list of all tickets")
+    public ResponseEntity<?> getAllTickets(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "bookingTime") String sortBy,
+            @RequestParam(defaultValue = "desc") String direction) {
+        try {
+            Sort.Direction sortDirection = Sort.Direction.fromString(direction.toUpperCase());
+            PageRequest pageRequest = PageRequest.of(page, size, Sort.by(sortDirection, sortBy));
+            Page<TicketDto> tickets = ticketService.findAllTickets(pageRequest);
+            return ResponseEntity.ok(new Response<>(0, tickets));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new Response<>(1, e.getMessage()));
+        }
+    }
+
+    @PostMapping("/verify/{ticketCode}")
+    @Operation(summary = "Verify and mark ticket as used", description = "Verify ticket code and mark ticket as used if valid")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Ticket verified and marked as used successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid ticket code or ticket already used"),
+        @ApiResponse(responseCode = "404", description = "Ticket not found")
+    })
+    public ResponseEntity<?> verifyAndMarkTicketAsUsed(@PathVariable String ticketCode) {
+        try {
+            TicketDto verifiedTicket = ticketService.verifyAndMarkTicketAsUsed(ticketCode);
+            return ResponseEntity.ok(new Response<>(0, verifiedTicket));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new Response<>(1, e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new Response<>(1, "An unexpected error occurred"));
         }
     }
 }

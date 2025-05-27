@@ -18,6 +18,9 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
 
     Ticket getTicketById(UUID id);
 
+    Ticket findByTicketCode(String ticketCode);
+
+
     @Query("SELECT t.showtime.id FROM Ticket t WHERE t.id = :ticketId")
     Integer getShowtimeIdByTicketId(@Param("ticketId") UUID ticketId);
 }

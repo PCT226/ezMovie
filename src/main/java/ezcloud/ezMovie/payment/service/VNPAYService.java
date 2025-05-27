@@ -14,7 +14,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.webjars.NotFoundException;
 
-import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -34,6 +34,8 @@ public class VNPAYService {
     private ShowtimeRepository showtimeRepository;
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+    @Autowired
+    private RevenueService revenueService;
 
     public Response<String> submitOrder(HttpServletRequest request, String id) {
         String baseUrl = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
@@ -75,9 +77,20 @@ public class VNPAYService {
         int resCode;
         if (paymentStatus == 1) {
             // Nếu thanh toán thành công
+            if (!ticket.isPaid()) {
+                Showtime showtimeRev = showtimeRepository.findById(ticket.getShowtime().getId())
+                    .orElse(null);
+                if (showtimeRev != null) {
+                    revenueService.addRevenue(
+                        showtimeRev.getScreen().getCinema(),
+                        showtimeRev.getMovie(),
+                        new BigDecimal(ticket.getTotalPrice().toString())
+                    );
+                }
+                updatePaymentStatus(UUID.fromString(orderId));
+            }
             String ticketCode = ticketService.generateAndSaveTicketCode(UUID.fromString(orderId));
             ticketService.confirmBooking(orderId);
-            updatePaymentStatus(UUID.fromString(orderId));  // Cập nhật status sau cùng
             resCode = 0;
         } else {
             resCode = 1;

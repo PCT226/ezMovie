@@ -25,11 +25,14 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -189,18 +192,37 @@ public class TicketService {
             } else {
                 ticketDto.setShowtime(null);
             }
+
+            // Map seats information
+            List<BookedSeat> bookedSeats = bookedSeatRepository.findBookedSeatsByTicket_Id(ticket.getId());
+            List<String> seatNumbers = bookedSeats.stream()
+                .map(bookedSeat -> bookedSeat.getSeat().getSeatNumber())
+                .collect(Collectors.toList());
+            ticketDto.setSeats(seatNumbers);
+
             return ticketDto;
         }).collect(Collectors.toList());
     }
 
     //Lưu thông tin ghế đã đặt
     public void saveBookedSeats(Ticket ticket, List<Integer> heldSeatIds) {
+        // Kiểm tra xem các ghế đã được đặt cho ticket này chưa
+        List<BookedSeat> existingBookings = bookedSeatRepository.findBookedSeatsByTicket_Id(ticket.getId());
+        Set<Integer> existingSeatIds = existingBookings.stream()
+            .map(bookedSeat -> bookedSeat.getSeat().getId())
+            .collect(Collectors.toSet());
+
         for (Integer seatId : heldSeatIds) {
-            BookedSeat bookedSeat = new BookedSeat();
-            bookedSeat.setTicket(ticket);
-            bookedSeat.setSeat(seatRepository.findById(seatId)
-                    .orElseThrow(() -> new RuntimeException("Seat not found")));
-            bookedSeatRepository.save(bookedSeat);
+            // Chỉ lưu nếu ghế chưa được đặt cho ticket này
+            if (!existingSeatIds.contains(seatId)) {
+                BookedSeat bookedSeat = new BookedSeat();
+                bookedSeat.setTicket(ticket);
+                bookedSeat.setSeat(seatRepository.findById(seatId)
+                        .orElseThrow(() -> new RuntimeException("Seat not found")));
+                bookedSeat.setCreatedAt(LocalDateTime.now());
+                bookedSeat.setUpdatedAt(LocalDateTime.now());
+                bookedSeatRepository.save(bookedSeat);
+            }
         }
     }
 
@@ -388,6 +410,96 @@ public class TicketService {
             ));
         }
         return seatList.toString();
+    }
+
+    public Page<TicketDto> findAllTickets(PageRequest pageRequest) {
+        Page<Ticket> tickets = ticketRepository.findAll(pageRequest);
+        return tickets.map(ticket -> {
+            TicketDto ticketDto = mapper.map(ticket, TicketDto.class);
+            if (ticket.getUser() != null) {
+                UserInfo userInfo = mapper.map(ticket.getUser(), UserInfo.class);
+                ticketDto.setUserInfo(userInfo);
+            } else {
+                ticketDto.setUserInfo(null);
+            }
+            if (ticket.getShowtime() != null) {
+                ShowtimeDto showtimeDto = mapper.map(ticket.getShowtime(), ShowtimeDto.class);
+                if (ticket.getShowtime().getMovie() != null) {
+                    MovieInfo movieInfo = mapper.map(ticket.getShowtime().getMovie(), MovieInfo.class);
+                    showtimeDto.setMovieInfo(movieInfo);
+                } else {
+                    showtimeDto.setMovieInfo(null);
+                }
+                if (ticket.getShowtime().getScreen() != null) {
+                    ScreenDto screenDto = mapper.map(ticket.getShowtime().getScreen(), ScreenDto.class);
+                    if (ticket.getShowtime().getScreen().getCinema() != null) {
+                        CinemaDto cinemaDTO = mapper.map(ticket.getShowtime().getScreen().getCinema(), CinemaDto.class);
+                        screenDto.setCinemaDto(cinemaDTO);
+                    } else {
+                        screenDto.setCinemaDto(null);
+                    }
+                    showtimeDto.setScreen(screenDto);
+                } else {
+                    showtimeDto.setScreen(null);
+                }
+                ticketDto.setShowtime(showtimeDto);
+            } else {
+                ticketDto.setShowtime(null);
+            }
+            return ticketDto;
+        });
+    }
+
+    @Transactional
+    public TicketDto verifyAndMarkTicketAsUsed(String ticketCode) {
+        // Tìm vé theo mã vé
+        Ticket ticket = ticketRepository.findByTicketCode(ticketCode);
+
+        // Kiểm tra điều kiện
+        if (!ticket.isPaid()) {
+            throw new RuntimeException("Ticket has not been paid");
+        }
+        if (ticket.isUsed()) {
+            throw new RuntimeException("Ticket has already been used");
+        }
+
+        // Cập nhật trạng thái sử dụng
+        ticket.setUsed(true);
+        ticket.setUpdatedAt(LocalDateTime.now());
+        ticketRepository.save(ticket);
+
+        // Chuyển đổi và trả về DTO
+        TicketDto ticketDto = mapper.map(ticket, TicketDto.class);
+        if (ticket.getUser() != null) {
+            UserInfo userInfo = mapper.map(ticket.getUser(), UserInfo.class);
+            ticketDto.setUserInfo(userInfo);
+        }
+        if (ticket.getShowtime() != null) {
+            ShowtimeDto showtimeDto = mapper.map(ticket.getShowtime(), ShowtimeDto.class);
+            if (ticket.getShowtime().getMovie() != null) {
+                MovieInfo movieInfo = mapper.map(ticket.getShowtime().getMovie(), MovieInfo.class);
+                showtimeDto.setMovieInfo(movieInfo);
+            }
+            if (ticket.getShowtime().getScreen() != null) {
+                ScreenDto screenDto = mapper.map(ticket.getShowtime().getScreen(), ScreenDto.class);
+                if (ticket.getShowtime().getScreen().getCinema() != null) {
+                    CinemaDto cinemaDTO = mapper.map(ticket.getShowtime().getScreen().getCinema(), CinemaDto.class);
+                    screenDto.setCinemaDto(cinemaDTO);
+                }
+                showtimeDto.setScreen(screenDto);
+            }
+            ticketDto.setShowtime(showtimeDto);
+        }
+        ticketDto.setTicketCode(ticketCode);
+
+        // Thêm thông tin về seats
+        List<BookedSeat> bookedSeats = bookedSeatRepository.findBookedSeatsByTicket_Id(ticket.getId());
+        List<String> seatNumbers = bookedSeats.stream()
+            .map(bookedSeat -> bookedSeat.getSeat().getSeatNumber())
+            .collect(Collectors.toList());
+        ticketDto.setSeats(seatNumbers);
+
+        return ticketDto;
     }
 }
 

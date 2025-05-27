@@ -1,10 +1,12 @@
 package ezcloud.ezMovie.jwt;
 
+import ezcloud.ezMovie.admin.auth.AdminUserDetails;
 import ezcloud.ezMovie.auth.model.enities.CustomUserDetail;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -21,43 +23,39 @@ public class JwtService {
 
     private final long EXPIRATION = 100000000000L;
 
-
-    public String generateToken(CustomUserDetail user) {
+    public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("id", user.getUser().getId());
-        claims.put("email", user.getUser().getEmail());
-        claims.put("roles", user.getUser().getRole());
-        return createToken(claims, user.getEmail());
-    }
-
-    public Boolean validateToken(String token, CustomUserDetail userDetails) {
-        // Lấy ngày hết hạn từ token
-        Date expirationDate = getExpirationDateFromToken(token);
-
-        // Kiểm tra token đã hết hạn chưa
-        if (expirationDate.before(new Date())) {
-            return false;
+        if (userDetails instanceof CustomUserDetail) {
+            CustomUserDetail user = (CustomUserDetail) userDetails;
+            claims.put("id", user.getUser().getId());
+            claims.put("email", user.getUser().getEmail());
+            claims.put("roles", user.getUser().getRole());
+        } else if (userDetails instanceof AdminUserDetails) {
+            AdminUserDetails admin = (AdminUserDetails) userDetails;
+            claims.put("id", admin.getAdmin().getId());
+            claims.put("email", admin.getAdmin().getEmail());
+            claims.put("roles", admin.getAdmin().getRole());
         }
-
-        // Lấy email từ token
-        String email = getEmailFromToken(token);
-
-        // Kiểm tra email trong token có khớp với tên người dùng và token chưa hết hạn
-        return userDetails.getEmail().equals(email);
+        return createToken(claims, userDetails.getUsername());
     }
-
 
     public String getEmailFromToken(String token) {
         return getClaimFromToken(token, Claims::getSubject);
     }
 
-    public Date getExpirationDateFromToken(String token) {
-        return getClaimFromToken(token, Claims::getExpiration);
+    public boolean validateToken(String token, UserDetails userDetails) {
+        final String email = getEmailFromToken(token);
+        return (email.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 
-    public <T> T getClaimFromToken(String token, Function<Claims, T> claimsResolver) {
+    private <T> T getClaimFromToken(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = getAllClaimsFromToken(token);
         return claimsResolver.apply(claims);
+    }
+
+    private boolean isTokenExpired(String token) {
+        final Date expiration = getClaimFromToken(token, Claims::getExpiration);
+        return expiration.before(new Date());
     }
 
     private Claims getAllClaimsFromToken(String token) {

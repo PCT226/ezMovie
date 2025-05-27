@@ -1,5 +1,6 @@
 package ezcloud.ezMovie.config;
 
+import ezcloud.ezMovie.admin.service.AdminService;
 import ezcloud.ezMovie.auth.service.CustomOAuth2SuccessHandler;
 import ezcloud.ezMovie.auth.service.UserService;
 import ezcloud.ezMovie.jwt.JwtAuthFilter;
@@ -28,6 +29,7 @@ public class SecurityConfig {
 
     private static final String[] WHITE_LIST_URL = {
             "/api/v1/auth/**",
+            "/api/v1/admin/auth/**",
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/auth/**",
@@ -41,32 +43,39 @@ public class SecurityConfig {
     };
     private final JwtAuthFilter jwtAuthFilter;
     private final CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
+    private final UserService userService;
+    private final AdminService adminService;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // Disabling CSRF as we use JWT which is immune to CSRF
+                .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(WHITE_LIST_URL).permitAll() // Whitelisting some paths from authentication
-                        .anyRequest().permitAll()) // All other requests must be authenticated
+                        .requestMatchers(WHITE_LIST_URL).permitAll()
+                        .anyRequest().permitAll())
                 .oauth2Login(oauth2 -> oauth2
-                        .successHandler(customOAuth2SuccessHandler) // Xử lý thành công
-
+                        .successHandler(customOAuth2SuccessHandler)
                         .failureHandler((request, response, authentication) -> {
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                         })
                 )
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless session management
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class); // Registering our JwtAuthFilter
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
     @Bean
-    public AuthenticationProvider authenticationProvider(UserService userService, PasswordEncoder passwordEncoder) {
+    public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-        provider.setUserDetailsService(userService); // Setting our custom user details service
-        provider.setPasswordEncoder(passwordEncoder); // Setting the password encoder
+        provider.setUserDetailsService(username -> {
+            try {
+                return adminService.loadUserByUsername(username);
+            } catch (Exception e) {
+                return userService.loadUserByEmail(username);
+            }
+        });
+        provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
 

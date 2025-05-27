@@ -7,6 +7,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -16,4 +17,6 @@ public class TicketDto {
     private String paymentStatus;
     private ShowtimeDto showtime;
     private UserInfo userInfo;
+    private String ticketCode;
+    private List<String> seats;
 }

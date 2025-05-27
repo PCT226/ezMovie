@@ -43,9 +43,10 @@ public class AuthService {
         if (!userService.existsByEmail(loginRequest.getEmail())) {
             throw new EmailNotFoundException("Email not found");
         }
+
         authenticateByEmail(loginRequest.getEmail(), loginRequest.getPassword());
         UserDetails userDetails = userService.loadUserByEmail(loginRequest.getEmail());
-        String token = jwtService.generateToken((CustomUserDetail) userDetails);
+        String token = jwtService.generateToken(userDetails);
         return new JwtResponse(token);
     }
 
