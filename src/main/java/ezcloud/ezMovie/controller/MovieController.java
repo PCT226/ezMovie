@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -32,14 +33,15 @@ public class MovieController {
             @ApiResponse(responseCode = "200", description = "Danh sách phim được lấy thành công."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi lấy danh sách phim.")
     })
-    public ResponseEntity<List<MovieInfo>> getListMovie(
+    public ResponseEntity<Page<MovieInfo>> getListMovie(
             @Parameter(description = "Số trang để phân trang", example = "0")
             @RequestParam(defaultValue = "0") int page,
 
             @Parameter(description = "Kích thước mỗi trang", example = "10")
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(movieService.findAll(pageable));
+        Page<MovieInfo> movieInfos = movieService.findAll(pageable);
+        return ResponseEntity.ok(movieInfos);
     }
 
     @GetMapping("/{id}")

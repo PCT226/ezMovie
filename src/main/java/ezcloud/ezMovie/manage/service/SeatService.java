@@ -2,7 +2,9 @@ package ezcloud.ezMovie.manage.service;
 
 import ezcloud.ezMovie.booking.model.enities.BookedSeat;
 import ezcloud.ezMovie.booking.repository.BookedSeatRepository;
+import ezcloud.ezMovie.manage.model.dto.SeatAdminDto;
 import ezcloud.ezMovie.manage.model.dto.SeatDto;
+import ezcloud.ezMovie.manage.model.enities.Cinema;
 import ezcloud.ezMovie.manage.model.enities.Screen;
 import ezcloud.ezMovie.manage.model.enities.Seat;
 import ezcloud.ezMovie.manage.model.enities.Showtime;
@@ -81,16 +83,20 @@ public class SeatService {
 
     }
 
-    public List<SeatDto> findAllByScreenId(int screenId, Pageable pageable) {
+    public List<SeatAdminDto> findAllByScreenId(int screenId, Pageable pageable) {
         List<Seat> seats = seatRepository.findAllByScreenIdAndIsDeletedFalse(screenId, pageable);
 
         return seats.stream().map(seat -> {
-
-            SeatDto seatDTO = new SeatDto();
+            Screen screen = screenRepository.findById(screenId)
+                    .orElseThrow(() -> new RuntimeException("Not found Screen"));
+            Cinema cinema = screen.getCinema();
+            SeatAdminDto seatDTO = new SeatAdminDto();
             seatDTO.setSeatId(seat.getId());
             seatDTO.setSeatNumber(seat.getSeatNumber());
             seatDTO.setPrice(seat.getPrice());
-
+            seatDTO.setScreenName(String.valueOf(screen.getScreenNumber()));
+            seatDTO.setScreenId(screen.getId());
+            seatDTO.setCinemaName(cinema.getName());
             return seatDTO;
         }).collect(Collectors.toList());
     }
@@ -126,4 +132,16 @@ public class SeatService {
         seatRepository.save(seat);
     }
 
+    public void updateRedisCache(List<SeatDto> seats, Integer showtimeId) {
+        Showtime showtime = showtimeRepository.findById(showtimeId)
+                .orElseThrow(() -> new RuntimeException("Not found Showtime"));
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime endTime = LocalDateTime.of(showtime.getDate(), showtime.getEndTime());
+        long ttlSeconds = Duration.between(now, endTime).getSeconds();
+
+        // Cập nhật Redis với danh sách ghế mới
+        redisTemplate.opsForValue().set("listSeat::" + showtime.getScreen().getId(), seats);
+        redisTemplate.expire("listSeat::" + showtimeId, ttlSeconds, TimeUnit.SECONDS);
+    }
 }

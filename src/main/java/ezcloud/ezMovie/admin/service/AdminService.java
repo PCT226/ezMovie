@@ -9,6 +9,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class AdminService implements UserDetailsService {
@@ -20,5 +22,8 @@ public class AdminService implements UserDetailsService {
         Admin admin = adminRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Admin not found with email: " + email));
         return new AdminUserDetails(admin);
+    }
+    public List<Admin> getAllAdmins() {
+        return adminRepository.findAll();
     }
 } 

@@ -412,10 +412,11 @@ public class TicketService {
         return seatList.toString();
     }
 
-    public Page<TicketDto> findAllTickets(PageRequest pageRequest) {
+    public Page<TicketAdminDto> findAllTickets(PageRequest pageRequest) {
         Page<Ticket> tickets = ticketRepository.findAll(pageRequest);
         return tickets.map(ticket -> {
-            TicketDto ticketDto = mapper.map(ticket, TicketDto.class);
+            TicketAdminDto ticketDto = mapper.map(ticket, TicketAdminDto.class);
+            ticketDto.setUsed(ticket.isUsed());
             if (ticket.getUser() != null) {
                 UserInfo userInfo = mapper.map(ticket.getUser(), UserInfo.class);
                 ticketDto.setUserInfo(userInfo);

@@ -1,10 +1,8 @@
 package ezcloud.ezMovie.config;
 
 import ezcloud.ezMovie.admin.service.AdminService;
-import ezcloud.ezMovie.auth.service.CustomOAuth2SuccessHandler;
 import ezcloud.ezMovie.auth.service.UserService;
 import ezcloud.ezMovie.jwt.JwtAuthFilter;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,10 +37,12 @@ public class SecurityConfig {
             "/ticket/**",
             "/movie/**",
             "/cinema/**",
-            "/showtime/**"
+            "/showtime/**",
+            "/api/chat/**",
+            "/ws/**",
+            "/seat/**",
     };
     private final JwtAuthFilter jwtAuthFilter;
-    private final CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
     private final UserService userService;
     private final AdminService adminService;
 
@@ -50,15 +50,10 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configure(http))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(WHITE_LIST_URL).permitAll()
-                        .anyRequest().permitAll())
-                .oauth2Login(oauth2 -> oauth2
-                        .successHandler(customOAuth2SuccessHandler)
-                        .failureHandler((request, response, authentication) -> {
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                        })
-                )
+                        .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

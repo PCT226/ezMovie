@@ -1,5 +1,6 @@
 package ezcloud.ezMovie.controller;
 
+import ezcloud.ezMovie.manage.model.dto.SeatAdminDto;
 import ezcloud.ezMovie.manage.model.dto.SeatDto;
 import ezcloud.ezMovie.manage.model.enities.Seat;
 import ezcloud.ezMovie.manage.model.payload.CreateSeatRequest;
@@ -32,7 +33,7 @@ public class SeatController {
             @ApiResponse(responseCode = "200", description = "Danh sách ghế được lấy thành công."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi lấy danh sách ghế.")
     })
-    public ResponseEntity<List<SeatDto>> getAllByScreen(
+    public ResponseEntity<List<SeatAdminDto>> getAllByScreen(
             @PathVariable int id,
             @Parameter(description = "Số trang để phân trang", example = "0")
             @RequestParam(defaultValue = "0") int page,
@@ -116,8 +117,20 @@ public class SeatController {
     public ResponseEntity<?> deleteSeat(@PathVariable int id) {
         seatService.deleteSeat(id);
         return ResponseEntity.ok("Xóa thành công");
-
     }
 
-
+    @PostMapping("/update-redis")
+    @Operation(summary = "Update Redis cache", description = "Update Redis cache when seats are modified")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Cập nhật Redis thành công."),
+            @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi cập nhật Redis.")
+    })
+    public ResponseEntity<?> updateRedis(@RequestBody List<SeatDto> seats, @RequestParam Integer showtimeId) {
+        try {
+            seatService.updateRedisCache(seats, showtimeId);
+            return ResponseEntity.ok("Cập nhật Redis thành công");
+        } catch (Exception ex) {
+            return new ResponseEntity<>("Lỗi khi cập nhật Redis: " + ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

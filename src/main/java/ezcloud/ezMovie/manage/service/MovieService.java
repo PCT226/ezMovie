@@ -29,11 +29,9 @@ public class MovieService {
     @Autowired
     private CacheManager cacheManager;
 
-    @Cacheable(value = "movies", key = "'allMovie'")
-    public List<MovieInfo> findAll(Pageable pageable) {
+    public Page<MovieInfo> findAll(Pageable pageable) {
         Page<Movie> movies = movieRepository.findAllByIsDeletedFalse(pageable);
-        return movies.stream().map(movie -> mapper.map(movie, MovieInfo.class))
-                .collect(Collectors.toList());
+        return movies.map(movie -> mapper.map(movie, MovieInfo.class));
     }
 
     @Cacheable(value = "movies")

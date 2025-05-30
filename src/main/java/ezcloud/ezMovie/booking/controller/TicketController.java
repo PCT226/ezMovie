@@ -5,6 +5,7 @@ import ezcloud.ezMovie.booking.model.payload.BookingRequestDTO;
 import ezcloud.ezMovie.booking.service.TicketService;
 import ezcloud.ezMovie.exception.TicketHeldException;
 import ezcloud.ezMovie.manage.model.dto.SeatDto;
+import ezcloud.ezMovie.manage.model.dto.TicketAdminDto;
 import ezcloud.ezMovie.manage.model.enities.Response;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -136,7 +137,7 @@ public class TicketController {
         try {
             Sort.Direction sortDirection = Sort.Direction.fromString(direction.toUpperCase());
             PageRequest pageRequest = PageRequest.of(page, size, Sort.by(sortDirection, sortBy));
-            Page<TicketDto> tickets = ticketService.findAllTickets(pageRequest);
+            Page<TicketAdminDto> tickets = ticketService.findAllTickets(pageRequest);
             return ResponseEntity.ok(new Response<>(0, tickets));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new Response<>(1, e.getMessage()));
