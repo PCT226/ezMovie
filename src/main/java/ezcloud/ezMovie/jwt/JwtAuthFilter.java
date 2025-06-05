@@ -27,30 +27,41 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            String email = jwtService.getEmailFromToken(token);
-            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = null;
-                try {
-                    userDetails = adminService.loadUserByUsername(email);
-                } catch (Exception e) {
+        try {
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                String email = jwtService.getEmailFromToken(token);
+                if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    UserDetails userDetails = null;
                     try {
-                        userDetails = userService.loadUserByEmail(email);
-                    } catch (Exception ex) {
-                        // Both attempts failed, continue with the filter chain
+                        userDetails = adminService.loadUserByUsername(email);
+                    } catch (Exception e) {
+                        try {
+                            userDetails = userService.loadUserByEmail(email);
+                        } catch (Exception ex) {
+                            // Both attempts failed, continue with the filter chain
+                        }
+                    }
+
+                    if (userDetails != null && jwtService.validateToken(token, userDetails)) {
+                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                                userDetails, null, userDetails.getAuthorities());
+                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
                     }
                 }
-
-                if (userDetails != null && jwtService.validateToken(token, userDetails)) {
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userDetails, null, userDetails.getAuthorities());
-                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
-                }
             }
+        } catch (Exception e) {
+            // Log the error but continue with the filter chain
+            logger.error("Error processing JWT token: " + e.getMessage());
         }
         filterChain.doFilter(request, response);
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path.startsWith("/api/chat/") || path.startsWith("/ws/");
     }
 }

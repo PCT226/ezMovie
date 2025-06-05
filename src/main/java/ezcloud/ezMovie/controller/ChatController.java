@@ -16,7 +16,8 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,8 +39,6 @@ public class ChatController {
         Conversation conversation = conversationRepository.findById(chatMessage.getConversationId())
                 .orElseThrow(() -> new RuntimeException("Conversation not found"));
 
-        // Check if sender is admin
-
         boolean isAdmin = chatMessage.isAdmin();
 
         Message message = new Message();
@@ -49,10 +48,7 @@ public class ChatController {
         message.setAdmin(isAdmin);
         messageRepository.save(message);
 
-        // Update isAdmin in chatMessage before sending
         chatMessage.setAdmin(isAdmin);
-
-        // Gửi tin nhắn đến topic cụ thể cho conversation
         messagingTemplate.convertAndSend("/topic/chat." + conversation.getId(), chatMessage);
     }
 
@@ -77,7 +73,6 @@ public class ChatController {
     }
 
     @GetMapping("/api/chat/conversations")
-    @PreAuthorize("hasRole('ADMIN')")
     @ResponseBody
     public List<ConversationDTO> getAllConversations() {
         return conversationRepository.findAll().stream()
@@ -88,6 +83,10 @@ public class ChatController {
     @GetMapping("/api/chat/messages/{conversationId}")
     @ResponseBody
     public List<MessageDTO> getConversationMessages(@PathVariable UUID conversationId) {
+        if (conversationId == null) {
+            throw new IllegalArgumentException("Conversation ID cannot be null");
+        }
+
         return messageRepository.findByConversationId(conversationId).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
@@ -99,7 +98,7 @@ public class ChatController {
         dto.setCreatedAt(conversation.getCreatedAt());
         dto.setUpdatedAt(conversation.getUpdatedAt());
         
-                      UserDTO userDTO = new UserDTO();
+        UserDTO userDTO = new UserDTO();
         userDTO.setId(conversation.getUser().getId());
         userDTO.setUsername(conversation.getUser().getUsername());
         userDTO.setEmail(conversation.getUser().getEmail());
