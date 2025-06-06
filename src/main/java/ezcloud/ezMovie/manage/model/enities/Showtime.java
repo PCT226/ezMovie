@@ -19,24 +19,43 @@ import java.time.LocalTime;
 public class Showtime {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", updatable = false, nullable = false)
     private Integer id;
 
     @ManyToOne
-    @JoinColumn(name = "movie_id")
+    @JoinColumn(name = "movie_id", nullable = false)
     private Movie movie;
 
     @ManyToOne
-    @JoinColumn(name = "screen_id")
+    @JoinColumn(name = "screen_id", nullable = false)
     private Screen screen;
 
-    @Column(nullable = false)
+    @Column(name = "date", nullable = false)
     private LocalDate date;
-    @Column(nullable = false)
+
+    @Column(name = "start_time", nullable = false)
     private LocalTime startTime;
-    @Column(nullable = false)
+
+    @Column(name = "end_time", nullable = false)
     private LocalTime endTime;
-    @Column(nullable = false, updatable = false)
+
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }

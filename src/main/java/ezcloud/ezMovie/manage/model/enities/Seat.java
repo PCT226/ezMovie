@@ -18,19 +18,34 @@ import java.time.LocalDateTime;
 public class Seat {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", updatable = false, nullable = false)
     private Integer id;
 
     @ManyToOne
-    @JoinColumn(name = "screen_id")
+    @JoinColumn(name = "screen_id", nullable = false)
     private Screen screen;
 
-    @Column(nullable = false)
+    @Column(name = "seat_number", nullable = false)
     private String seatNumber;
-    @Column(nullable = false)
+
+    @Column(name = "price", nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
     //    private String seatStatus;
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+    @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }

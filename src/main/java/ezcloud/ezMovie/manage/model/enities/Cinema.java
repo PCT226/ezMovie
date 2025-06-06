@@ -18,19 +18,38 @@ import java.util.Set;
 public class Cinema {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", updatable = false, nullable = false)
     private Integer id;
 
-    @Column(nullable = false)
+    @Column(name = "name", nullable = false)
     private String name;
-    @Column(nullable = false)
+
+    @Column(name = "location", nullable = false)
     private String location;
-    @Column(nullable = false)
+
+    @Column(name = "city", nullable = false)
     private String city;
-    @Column(nullable = false, updatable = false)
+
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
+
     @OneToMany(mappedBy = "cinema")
     private Set<Screen> screens;
 
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }
