@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -117,6 +118,22 @@ public class AdminAuthController {
             return ResponseEntity.ok("Admin staff deleted successfully");
         } catch (RuntimeException ex) {
             return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
+        } catch (Exception ex) {
+            return new ResponseEntity<>("{ \"error\": \"Internal Server Error\" }", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/staff")
+    @Operation(summary = "Get all admin staff", description = "Get a list of all admin staff members")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "List of admin staff retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<?> getAllStaff() {
+        try {
+            List<Admin> admins = adminService.getAllAdmins();
+            return ResponseEntity.ok(admins);
         } catch (Exception ex) {
             return new ResponseEntity<>("{ \"error\": \"Internal Server Error\" }", HttpStatus.INTERNAL_SERVER_ERROR);
         }
