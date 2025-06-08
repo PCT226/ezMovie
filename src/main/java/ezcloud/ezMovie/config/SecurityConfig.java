@@ -47,7 +47,10 @@ public class SecurityConfig {
             "/api/chat/**",
             "/ws/**",
             "/seat/**",
-            "ping"
+            "/ping",
+            "/api/v1/movie/**",
+            "/api/v1/cinema/**",
+            "/api/v1/showtime/**"
     };
     private final JwtAuthFilter jwtAuthFilter;
     private final AdminService adminService;
