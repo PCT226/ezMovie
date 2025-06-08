@@ -74,7 +74,9 @@ public class SecurityConfig {
             "http://localhost:3000", 
             "https://ezmovie.onrender.com",
             "https://ezmovie-git-main-ngocleeeeees-projects.vercel.app",
-            "https://ezmovie-1cm7mldgg-ngocleeeeees-projects.vercel.app"
+            "https://ezmovie-1cm7mldgg-ngocleeeeees-projects.vercel.app",
+            "https://ezmovie-iota.vercel.app",
+            "https://ezmovie-production.up.railway.app"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
