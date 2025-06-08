@@ -10,19 +10,18 @@ import org.modelmapper.ModelMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
+@EnableWebSecurity
 public class ApplicationConfig {
 
     @Bean
     public ModelMapper modelMapper() {
         return new ModelMapper();
-    }
-
-    @Bean
-    @Lazy
-    public JwtAuthFilter jwtAuthFilter(JwtService jwtService, UserService userService, AdminService adminService) {
-        return new JwtAuthFilter(jwtService, userService, adminService);
     }
 
     @Bean
@@ -36,7 +35,18 @@ public class ApplicationConfig {
     }
 
     @Bean
-    public AdminService adminService(AdminRepository adminRepository) {
-        return new AdminService(adminRepository);
+    public AdminService adminService(AdminRepository adminRepository, PasswordEncoder passwordEncoder) {
+        return new AdminService(adminRepository, passwordEncoder);
+    }
+
+    @Bean
+    @Lazy
+    public JwtAuthFilter jwtAuthFilter(JwtService jwtService, UserService userService, AdminService adminService) {
+        return new JwtAuthFilter(jwtService, userService, adminService);
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }
