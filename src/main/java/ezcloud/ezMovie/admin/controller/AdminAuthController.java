@@ -19,6 +19,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/v1/admin/auth")
 @RequiredArgsConstructor
@@ -96,6 +98,25 @@ public class AdminAuthController {
         try {
             Admin createdAdmin = adminService.createAdmin(admin);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdAdmin);
+        } catch (Exception ex) {
+            return new ResponseEntity<>("{ \"error\": \"Internal Server Error\" }", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @DeleteMapping("/staff/{id}")
+    @Operation(summary = "Delete admin staff", description = "Delete an admin staff member by ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Admin staff deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "Admin staff not found"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<?> deleteStaff(@PathVariable UUID id) {
+        try {
+            adminService.deleteAdmin(id);
+            return ResponseEntity.ok("Admin staff deleted successfully");
+        } catch (RuntimeException ex) {
+            return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
         } catch (Exception ex) {
             return new ResponseEntity<>("{ \"error\": \"Internal Server Error\" }", HttpStatus.INTERNAL_SERVER_ERROR);
         }

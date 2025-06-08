@@ -7,15 +7,18 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class AdminService implements UserDetailsService {
 
     private final AdminRepository adminRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -28,6 +31,15 @@ public class AdminService implements UserDetailsService {
     }
 
     public Admin createAdmin(Admin admin) {
+        // Encode password before saving
+        admin.setPassword(passwordEncoder.encode(admin.getPassword()));
         return adminRepository.save(admin);
+    }
+
+    public void deleteAdmin(UUID id) {
+        if (!adminRepository.existsById(id)) {
+            throw new RuntimeException("Admin not found with id: " + id);
+        }
+        adminRepository.deleteById(id);
     }
 } 
