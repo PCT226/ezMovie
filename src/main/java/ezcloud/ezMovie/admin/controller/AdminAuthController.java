@@ -1,8 +1,10 @@
 package ezcloud.ezMovie.admin.controller;
 
+import ezcloud.ezMovie.admin.model.entities.Admin;
 import ezcloud.ezMovie.admin.model.payload.AdminLoginRequest;
 import ezcloud.ezMovie.admin.model.payload.AdminPasswordChangeRequest;
 import ezcloud.ezMovie.admin.service.AdminAuthService;
+import ezcloud.ezMovie.admin.service.AdminService;
 import ezcloud.ezMovie.auth.model.payload.JwtResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdminAuthController {
 
     private final AdminAuthService adminAuthService;
+    private final AdminService adminService;
 
     @PostMapping("/login")
     @Operation(summary = "Admin login", description = "Login with admin credentials")
@@ -76,6 +79,23 @@ public class AdminAuthController {
             return ResponseEntity.ok("Password changed successfully");
         } catch (BadCredentialsException ex) {
             return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception ex) {
+            return new ResponseEntity<>("{ \"error\": \"Internal Server Error\" }", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PostMapping("/staff")
+    @Operation(summary = "Add new admin staff", description = "Create a new admin staff member")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Admin staff created successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid request data"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<?> addStaff(@RequestBody Admin admin) {
+        try {
+            Admin createdAdmin = adminService.createAdmin(admin);
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdAdmin);
         } catch (Exception ex) {
             return new ResponseEntity<>("{ \"error\": \"Internal Server Error\" }", HttpStatus.INTERNAL_SERVER_ERROR);
         }

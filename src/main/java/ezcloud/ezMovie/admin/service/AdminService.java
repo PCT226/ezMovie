@@ -26,4 +26,8 @@ public class AdminService implements UserDetailsService {
     public List<Admin> getAllAdmins() {
         return adminRepository.findAll();
     }
+
+    public Admin createAdmin(Admin admin) {
+        return adminRepository.save(admin);
+    }
 } 
