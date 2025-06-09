@@ -63,13 +63,21 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 
                 if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     UserDetails userDetails = null;
-                    try {
-                        userDetails = adminService.loadUserByUsername(email);
-                    } catch (Exception e) {
+                    
+                    // Kiểm tra role từ token
+                    String role = jwtService.getRoleFromToken(token);
+                    
+                    if ("ADMIN".equals(role)) {
+                        try {
+                            userDetails = adminService.loadUserByUsername(email);
+                        } catch (Exception e) {
+                            logger.error("Failed to load admin details: " + e.getMessage());
+                        }
+                    } else {
                         try {
                             userDetails = userService.loadUserByEmail(email);
-                        } catch (Exception ex) {
-                            logger.error("Failed to load user details: " + ex.getMessage());
+                        } catch (Exception e) {
+                            logger.error("Failed to load user details: " + e.getMessage());
                         }
                     }
 
