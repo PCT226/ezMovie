@@ -57,37 +57,41 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
 
             String authHeader = request.getHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String token = authHeader.substring(7);
-                String email = jwtService.getEmailFromToken(token);
-                
-                if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    UserDetails userDetails = null;
-                    
-                    // Kiểm tra role từ token
-                    String role = jwtService.getRoleFromToken(token);
-                    
-                    if ("ADMIN".equals(role)) {
-                        try {
-                            userDetails = adminService.loadUserByUsername(email);
-                        } catch (Exception e) {
-                            logger.error("Failed to load admin details: " + e.getMessage());
-                        }
-                    } else {
-                        try {
-                            userDetails = userService.loadUserByEmail(email);
-                        } catch (Exception e) {
-                            logger.error("Failed to load user details: " + e.getMessage());
-                        }
-                    }
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                filterChain.doFilter(request, response);
+                return;
+            }
 
-                    if (userDetails != null && jwtService.validateToken(token, userDetails)) {
-                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities());
-                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                        SecurityContextHolder.getContext().setAuthentication(authToken);
-                    }
+            String token = authHeader.substring(7);
+            if (!jwtService.validateToken(token)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            String email = jwtService.getEmailFromToken(token);
+            if (email == null || SecurityContextHolder.getContext().getAuthentication() != null) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            UserDetails userDetails = null;
+            String role = jwtService.getRoleFromToken(token);
+            
+            try {
+                if ("ADMIN".equals(role)) {
+                    userDetails = adminService.loadUserByUsername(email);
+                } else {
+                    userDetails = userService.loadUserByEmail(email);
                 }
+
+                if (userDetails != null) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+            } catch (Exception e) {
+                logger.error("Error loading user details: " + e.getMessage());
             }
         } catch (Exception e) {
             logger.error("Error processing JWT token: " + e.getMessage());
