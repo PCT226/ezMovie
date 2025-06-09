@@ -1,5 +1,6 @@
 package ezcloud.ezMovie.auth.service;
 
+import ezcloud.ezMovie.admin.service.AdminService;
 import ezcloud.ezMovie.auth.model.enities.CustomUserDetail;
 import ezcloud.ezMovie.auth.model.enities.User;
 import ezcloud.ezMovie.auth.model.payload.ChangePasswordRequest;
@@ -14,6 +15,7 @@ import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -40,14 +42,18 @@ public class AuthService {
     private UserRepository userRepository;
 
     public JwtResponse login(LoginRequest loginRequest) {
-        if (!userService.existsByEmail(loginRequest.getEmail())) {
-            throw new EmailNotFoundException("Email not found");
+        // Thử đăng nhập với user trước
+        try {
+            if (userService.existsByEmail(loginRequest.getEmail())) {
+                authenticateByEmail(loginRequest.getEmail(), loginRequest.getPassword());
+                UserDetails userDetails = userService.loadUserByEmail(loginRequest.getEmail());
+                String token = jwtService.generateToken(userDetails);
+                return new JwtResponse(token);
+            }
+        } catch (Exception e) {
+            throw new BadCredentialsException("Invalid username or password");
         }
-
-        authenticateByEmail(loginRequest.getEmail(), loginRequest.getPassword());
-        UserDetails userDetails = userService.loadUserByEmail(loginRequest.getEmail());
-        String token = jwtService.generateToken(userDetails);
-        return new JwtResponse(token);
+        throw new BadCredentialsException("Invalid username or password");
     }
 
     public void register(RegisterRequest request) throws MessagingException {
