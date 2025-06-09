@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
+import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
@@ -43,9 +44,11 @@ public class RedisConfig {
             config.setUsername(redisUsername);
         }
 
-        LettuceConnectionFactory connectionFactory = new LettuceConnectionFactory(config);
-        connectionFactory.setShareNativeConnection(false);
-        return connectionFactory;
+        LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
+                .useSsl() // Bắt buộc cho Upstash
+                .build();
+
+        return new LettuceConnectionFactory(config, clientConfig);
     }
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory redisConnectionFactory) {
