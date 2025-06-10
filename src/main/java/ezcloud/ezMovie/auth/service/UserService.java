@@ -7,6 +7,7 @@ import ezcloud.ezMovie.auth.model.enities.User;
 import ezcloud.ezMovie.auth.repository.UserRepository;
 import ezcloud.ezMovie.exception.EmailAlreadyExistsException;
 import ezcloud.ezMovie.exception.EmailNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -14,20 +15,20 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
+@Service
+@RequiredArgsConstructor
 public class UserService implements UserDetailsService {
     @Autowired
     private UserRepository userRepository;
     @Autowired
     private ModelMapper mapper;
 
-    public UserService(UserRepository userRepository) {
-    }
 
     public User saveUser(User user) {
         return userRepository.save(user);

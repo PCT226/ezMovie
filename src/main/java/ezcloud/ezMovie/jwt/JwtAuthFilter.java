@@ -7,6 +7,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -22,35 +24,24 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
 
+    private static final Logger logger = LoggerFactory.getLogger(JwtAuthFilter.class);
     private final JwtService jwtService;
     private final UserService userService;
     private final AdminService adminService;
 
     private static final List<String> PUBLIC_PATHS = Arrays.asList(
-            "/api/v1/auth/",
-            "/api/v1/admin/auth/",
-            "/swagger-ui/",
-            "/v3/api-docs/",
-            "/auth/",
-            "/login",
-            "/oauth2/",
-            "/payment/",
-            "/ticket/",
-            "/movie/",
-            "/cinema/",
-            "/showtime/",
-            "/api/chat/",
-            "/ws/",
-            "/seat/"
+        "/api/v1/auth/login",
+        "/api/v1/auth/register",
+        "/api/v1/admin/auth/login",
+        "/swagger-ui",
+        "/v3/api-docs"
     );
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         try {
-            String path = request.getRequestURI();
-            
-            // Skip token validation for public paths
+            String path = request.getServletPath();
             if (isPublicPath(path)) {
                 filterChain.doFilter(request, response);
                 return;
@@ -58,43 +49,34 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             String authHeader = request.getHeader("Authorization");
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                logger.debug("No Bearer token found in request");
                 filterChain.doFilter(request, response);
                 return;
             }
 
             String token = authHeader.substring(7);
-            if (!jwtService.validateToken(token)) {
-                filterChain.doFilter(request, response);
-                return;
-            }
-
             String email = jwtService.getEmailFromToken(token);
-            if (email == null || SecurityContextHolder.getContext().getAuthentication() != null) {
+            if (email == null) {
+                logger.error("Could not extract email from token");
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            UserDetails userDetails = null;
-            String role = jwtService.getRoleFromToken(token);
-            
-            try {
-                if ("ADMIN".equals(role)) {
-                    userDetails = adminService.loadUserByUsername(email);
-                } else {
-                    userDetails = userService.loadUserByEmail(email);
-                }
-
-                if (userDetails != null) {
+            if (SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = loadUserDetails(email);
+                if (userDetails != null && jwtService.validateToken(token, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userDetails, null, userDetails.getAuthorities());
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities()
+                    );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                    logger.debug("Successfully authenticated user: {}", email);
                 }
-            } catch (Exception e) {
-                logger.error("Error loading user details: " + e.getMessage());
             }
         } catch (Exception e) {
-            logger.error("Error processing JWT token: " + e.getMessage());
+            logger.error("Error processing JWT token: {}", e.getMessage(), e);
         }
         filterChain.doFilter(request, response);
     }
@@ -103,9 +85,22 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         return PUBLIC_PATHS.stream().anyMatch(path::startsWith);
     }
 
+    private UserDetails loadUserDetails(String email) {
+        try {
+            return adminService.loadUserByUsername(email);
+        } catch (Exception e) {
+            try {
+                return userService.loadUserByEmail(email);
+            } catch (Exception ex) {
+                logger.error("User not found: {}", email);
+                return null;
+            }
+        }
+    }
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
-        return path.startsWith("/api/chat/") || path.startsWith("/ws/");
+        String path = request.getServletPath();
+        return isPublicPath(path);
     }
 }

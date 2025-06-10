@@ -51,57 +51,83 @@ public class JwtService {
     }
 
     public String getEmailFromToken(String token) {
-        return getClaimFromToken(token, Claims::getSubject);
+        try {
+            Claims claims = getAllClaimsFromToken(token);
+            String email = claims.get("email", String.class);
+            logger.debug("Extracted email from token: {}", email);
+            return email;
+        } catch (Exception e) {
+            logger.error("Error extracting email from token: {}", e.getMessage());
+            return null;
+        }
     }
 
     public String getRoleFromToken(String token) {
-        Claims claims = getAllClaimsFromToken(token);
-        return claims.get("roles", String.class);
-    }
-
-    public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token);
-            return !isTokenExpired(token);
+            Claims claims = getAllClaimsFromToken(token);
+            String role = claims.get("roles", String.class);
+            logger.debug("Extracted role from token: {}", role);
+            return role;
         } catch (Exception e) {
-            logger.error("Error validating token: " + e.getMessage());
-            return false;
+            logger.error("Error extracting role from token: {}", e.getMessage());
+            return null;
         }
     }
 
     public boolean validateToken(String token, UserDetails userDetails) {
-        final String email = getEmailFromToken(token);
-        return (email.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        try {
+            Claims claims = getAllClaimsFromToken(token);
+            String email = claims.get("email", String.class);
+            boolean isValid = email.equals(userDetails.getUsername()) && !isTokenExpired(claims);
+            logger.debug("Token validation result for {}: {}", email, isValid);
+            return isValid;
+        } catch (Exception e) {
+            logger.error("Error validating token: {}", e.getMessage());
+            return false;
+        }
     }
 
-    private <T> T getClaimFromToken(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = getAllClaimsFromToken(token);
-        return claimsResolver.apply(claims);
-    }
-
-    private boolean isTokenExpired(String token) {
-        final Date expiration = getClaimFromToken(token, Claims::getExpiration);
-        return expiration.before(new Date());
+    private boolean isTokenExpired(Claims claims) {
+        try {
+            Date expiration = claims.getExpiration();
+            boolean isExpired = expiration.before(new Date());
+            logger.debug("Token expiration check: {}", isExpired);
+            return isExpired;
+        } catch (Exception e) {
+            logger.error("Error checking token expiration: {}", e.getMessage());
+            return true;
+        }
     }
 
     private Claims getAllClaimsFromToken(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        try {
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+            logger.debug("Successfully parsed JWT claims");
+            return claims;
+        } catch (Exception e) {
+            logger.error("Error parsing JWT claims: {}", e.getMessage());
+            throw e;
+        }
     }
 
-    private String createToken(Map<String, Object> claims, String email) {
-        return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(email)
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION))
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
-                .compact();
+    private String createToken(Map<String, Object> claims, String subject) {
+        try {
+            String token = Jwts.builder()
+                    .setClaims(claims)
+                    .setSubject(subject)
+                    .setIssuedAt(new Date(System.currentTimeMillis()))
+                    .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION))
+                    .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                    .compact();
+            logger.debug("Successfully created JWT token for subject: {}", subject);
+            return token;
+        } catch (Exception e) {
+            logger.error("Error creating JWT token: {}", e.getMessage());
+            throw e;
+        }
     }
 }

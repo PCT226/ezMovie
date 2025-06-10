@@ -1,7 +1,8 @@
 package ezcloud.ezMovie.auth.model.enities;
 
+import lombok.Getter;
+import lombok.Setter;
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -9,9 +10,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.Collections;
 
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 public class CustomUserDetail implements UserDetails {
+
     private User user;
 
     @Override
@@ -35,21 +38,29 @@ public class CustomUserDetail implements UserDetails {
 
     @Override
     public boolean isAccountNonExpired() {
-        return UserDetails.super.isAccountNonExpired();
+        return true; // hoặc user.isAccountNonExpired() nếu bạn có field đó
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return UserDetails.super.isAccountNonLocked();
+        return true;
     }
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return UserDetails.super.isCredentialsNonExpired();
+        return true;
     }
 
     @Override
     public boolean isEnabled() {
-        return UserDetails.super.isEnabled();
+        return user.isVerified(); // hoặc true nếu bạn chưa dùng xác thực email
+    }
+
+    @Override
+    public String toString() {
+        return "CustomUserDetail{" +
+                "email='" + user.getEmail() + '\'' +
+                ", role='" + user.getRole() + '\'' +
+                '}';
     }
 }

@@ -30,11 +30,6 @@ public class ApplicationConfig {
     }
 
     @Bean
-    public UserService userService(UserRepository userRepository) {
-        return new UserService(userRepository);
-    }
-
-    @Bean
     public AdminService adminService(AdminRepository adminRepository, PasswordEncoder passwordEncoder) {
         return new AdminService(adminRepository, passwordEncoder);
     }

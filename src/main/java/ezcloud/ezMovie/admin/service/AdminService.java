@@ -4,6 +4,8 @@ import ezcloud.ezMovie.admin.auth.AdminUserDetails;
 import ezcloud.ezMovie.admin.model.entities.Admin;
 import ezcloud.ezMovie.admin.repository.AdminRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -17,21 +19,27 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AdminService implements UserDetailsService {
 
+    private static final Logger logger = LoggerFactory.getLogger(AdminService.class);
     private final AdminRepository adminRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        logger.debug("Loading admin by email: {}", email);
         Admin admin = adminRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Admin not found with email: " + email));
+                .orElseThrow(() -> {
+                    logger.error("Admin not found with email: {}", email);
+                    return new UsernameNotFoundException("Admin not found with email: " + email);
+                });
+        logger.debug("Found admin: {}", admin.getEmail());
         return new AdminUserDetails(admin);
     }
+
     public List<Admin> getAllAdmins() {
         return adminRepository.findAll();
     }
 
     public Admin createAdmin(Admin admin) {
-        // Encode password before saving
         admin.setPassword(passwordEncoder.encode(admin.getPassword()));
         return adminRepository.save(admin);
     }
