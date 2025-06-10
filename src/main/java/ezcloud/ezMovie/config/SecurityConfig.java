@@ -45,13 +45,15 @@ public class SecurityConfig {
             "/movie/**",
             "/cinema/**",
             "/showtime/**",
+            "/screen/**",
             "/api/chat/**",
             "/ws/**",
             "/seat/**",
             "/ping",
             "/api/v1/movie/**",
             "/api/v1/cinema/**",
-            "/api/v1/showtime/**"
+            "/api/v1/showtime/**",
+            "/api/v1/screen/**"
     };
 
     private final JwtAuthFilter jwtAuthFilter;

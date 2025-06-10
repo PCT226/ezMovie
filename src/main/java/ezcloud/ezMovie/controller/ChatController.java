@@ -19,6 +19,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -53,6 +54,7 @@ public class ChatController {
     }
 
     @PostMapping("/api/chat/conversation")
+    @Transactional
     @ResponseBody
     public ConversationDTO createConversation(@RequestParam UUID userId) {
         User user = userRepository.findById(userId)
@@ -74,6 +76,7 @@ public class ChatController {
 
     @GetMapping("/api/chat/conversations")
     @ResponseBody
+    @Transactional
     public List<ConversationDTO> getAllConversations() {
         return conversationRepository.findAll().stream()
                 .map(this::convertToDTO)
@@ -82,6 +85,7 @@ public class ChatController {
 
     @GetMapping("/api/chat/messages/{conversationId}")
     @ResponseBody
+    @Transactional
     public List<MessageDTO> getConversationMessages(@PathVariable UUID conversationId) {
         if (conversationId == null) {
             throw new IllegalArgumentException("Conversation ID cannot be null");
