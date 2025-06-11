@@ -124,14 +124,20 @@ public class VNPAYService {
         vnp_Params.put("vnp_ReturnUrl", VNPAYConfig.vnp_Returnurl);
         vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
 
-        Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Etc/GMT+7"));
+        TimeZone tz = TimeZone.getTimeZone("Etc/GMT+7");
+        Calendar cld = Calendar.getInstance(tz);
         SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
+        formatter.setTimeZone(tz);  // BẮT BUỘC phải set ở đây
+
         String vnp_CreateDate = formatter.format(cld.getTime());
         vnp_Params.put("vnp_CreateDate", vnp_CreateDate);
 
-        cld.add(Calendar.MINUTE, 10);
-        String vnp_ExpireDate = formatter.format(cld.getTime());
+// Sử dụng clone để không ảnh hưởng thời gian tạo
+        Calendar expire = (Calendar) cld.clone();
+        expire.add(Calendar.MINUTE, 10);
+        String vnp_ExpireDate = formatter.format(expire.getTime());
         vnp_Params.put("vnp_ExpireDate", vnp_ExpireDate);
+
 
         List fieldNames = new ArrayList(vnp_Params.keySet());
         Collections.sort(fieldNames);
