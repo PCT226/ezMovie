@@ -240,8 +240,8 @@ public class ShowtimeService {
         showtime.setDate(request.getDate());
         showtime.setMovie(movie);
         showtime.setScreen(screen);
-        showtime.setStartTime(request.getStartTime().toLocalTime());
-        showtime.setEndTime(request.getEndTime().toLocalTime());
+        showtime.setStartTime(request.getStartTime());
+        showtime.setEndTime(request.getEndTime());
         showtime.setCreatedAt(LocalDateTime.now());
         showtime.setUpdatedAt(LocalDateTime.now());
 
@@ -250,8 +250,8 @@ public class ShowtimeService {
     }
 
     private boolean isTimeConflict(Showtime existingShowtime, CreateShowtimeRequest request) {
-        LocalTime newStartTime = request.getStartTime().toLocalTime();
-        LocalTime newEndTime = request.getEndTime().toLocalTime();
+        LocalTime newStartTime = request.getStartTime();
+        LocalTime newEndTime = request.getEndTime();
         LocalTime existingStartTime = existingShowtime.getStartTime();
         LocalTime existingEndTime = existingShowtime.getEndTime();
 
