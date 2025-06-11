@@ -23,8 +23,8 @@ public class Ticket {
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(
-        name = "UUID",
-        strategy = "org.hibernate.id.UUIDGenerator"
+            name = "UUID",
+            strategy = "org.hibernate.id.UUIDGenerator"
     )
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
@@ -61,7 +61,7 @@ public class Ticket {
     @Column(name = "is_used", nullable = false)
     private boolean isUsed = false;
 
-    @Column(name = "ticket_code", nullable = false, unique = true)
+    @Column(name = "ticket_code", nullable = true, unique = true)
     private String ticketCode;
 
     @PrePersist
