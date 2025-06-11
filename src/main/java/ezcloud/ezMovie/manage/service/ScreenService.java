@@ -1,5 +1,6 @@
 package ezcloud.ezMovie.manage.service;
 
+import ezcloud.ezMovie.dto.ScreenDto1;
 import ezcloud.ezMovie.manage.model.dto.CinemaDto;
 import ezcloud.ezMovie.manage.model.dto.ScreenDto;
 import ezcloud.ezMovie.manage.model.enities.Cinema;
@@ -62,24 +63,32 @@ public class ScreenService {
         return screenRepository.save(screen);
     }
 
-    public Screen updateScreen(UpdateScreenRequest request) {
-        // Tìm kiếm screen hiện tại dựa trên ID
+    public ScreenDto1 updateScreen(UpdateScreenRequest request) {
         Screen existScreen = screenRepository.findById(request.getScreenId())
                 .orElseThrow(() -> new RuntimeException("Screen not found"));
 
-        // Kiểm tra nếu CinemaId trong request có khác với Cinema hiện tại không
         if (request.getCinemaId() != null && !request.getCinemaId().equals(existScreen.getCinema().getId())) {
             Cinema newCinema = cinemaRepository.findById(request.getCinemaId())
                     .orElseThrow(() -> new RuntimeException("Cinema not found"));
             existScreen.setCinema(newCinema);
         }
-        // Cập nhật thông tin khác của screen
+
         existScreen.setScreenNumber(request.getScreenNumber());
         existScreen.setCapacity(request.getCapacity());
         existScreen.setUpdatedAt(LocalDateTime.now());
-        // Lưu lại screen sau khi cập nhật
-        return screenRepository.save(existScreen);
+
+        Screen saved = screenRepository.save(existScreen);
+
+        // Mapping thủ công
+        ScreenDto1 dto = new ScreenDto1();
+        dto.setId(saved.getId());
+        dto.setScreenNumber(saved.getScreenNumber());
+        dto.setCapacity(saved.getCapacity());
+        dto.setCinemaId(saved.getCinema().getId());
+
+        return dto;
     }
+
 
     public void deleteScreen(int id) {
         Screen screen = screenRepository.findById(id).orElseThrow(() -> new RuntimeException("Not found Screen to Delete"));

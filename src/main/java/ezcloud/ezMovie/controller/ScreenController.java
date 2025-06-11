@@ -1,5 +1,6 @@
 package ezcloud.ezMovie.controller;
 
+import ezcloud.ezMovie.dto.ScreenDto1;
 import ezcloud.ezMovie.manage.model.dto.ScreenDto;
 import ezcloud.ezMovie.manage.model.enities.Screen;
 import ezcloud.ezMovie.manage.model.payload.CreateScreenRequest;
@@ -81,7 +82,7 @@ public class ScreenController {
     })
     public ResponseEntity<?> update(@RequestBody UpdateScreenRequest request) {
         try {
-            Screen updatedScreen = screenService.updateScreen(request);
+            ScreenDto1 updatedScreen = screenService.updateScreen(request);
             return ResponseEntity.ok(updatedScreen);
         } catch (RuntimeException ex) {
             return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
