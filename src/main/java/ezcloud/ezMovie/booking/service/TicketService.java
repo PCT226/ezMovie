@@ -274,7 +274,7 @@ public class TicketService {
         ticketRepository.save(ticket);
 
         // Only send email if the ticket is not already confirmed
-        if (!"CONFIRMED".equals(ticket.getPaymentStatus())) {
+        if ("CONFIRMED".equals(ticket.getPaymentStatus())) {
             try {
                 // Lấy thông tin ghế từ Redis
                 List<Integer> seatIds = getSeatIdsFromRedis(String.valueOf(ticket.getId()));
