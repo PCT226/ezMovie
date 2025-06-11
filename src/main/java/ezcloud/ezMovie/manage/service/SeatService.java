@@ -118,9 +118,11 @@ public class SeatService {
         Seat s1 = seatRepository.findById(request.getSeatId())
                 .orElseThrow(() -> new RuntimeException("Not found Seat"));
         s1.setUpdatedAt(LocalDateTime.now());
+        Screen screen = screenRepository.findById(request.getScreenId())
+                .orElseThrow(() -> new RuntimeException("Not found Screen"));
         s1.setSeatNumber(request.getSeatNumber());
         s1.setPrice(request.getPrice());
-        s1.setScreen(request.getScreen());
+        s1.setScreen(screen);
 
         return seatRepository.save(s1);
     }

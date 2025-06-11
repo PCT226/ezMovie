@@ -12,5 +12,5 @@ public class UpdateSeatRequest {
     private int seatId;
     private String seatNumber;
     private BigDecimal price;
-    private Screen screen;
+    private int screenId;
 }
