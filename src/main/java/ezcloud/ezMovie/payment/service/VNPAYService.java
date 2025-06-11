@@ -124,15 +124,15 @@ public class VNPAYService {
         vnp_Params.put("vnp_ReturnUrl", VNPAYConfig.vnp_Returnurl);
         vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
 
-        TimeZone tz = TimeZone.getTimeZone("Etc/GMT+7");
+        TimeZone tz = TimeZone.getTimeZone("Asia/Ho_Chi_Minh");
         Calendar cld = Calendar.getInstance(tz);
         SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
-        formatter.setTimeZone(tz);  // BẮT BUỘC phải set ở đây
+        formatter.setTimeZone(tz);
 
         String vnp_CreateDate = formatter.format(cld.getTime());
         vnp_Params.put("vnp_CreateDate", vnp_CreateDate);
 
-// Sử dụng clone để không ảnh hưởng thời gian tạo
+// Clone không ảnh hưởng gốc
         Calendar expire = (Calendar) cld.clone();
         expire.add(Calendar.MINUTE, 10);
         String vnp_ExpireDate = formatter.format(expire.getTime());
