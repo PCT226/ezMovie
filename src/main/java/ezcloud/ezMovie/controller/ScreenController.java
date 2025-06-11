@@ -16,6 +16,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -61,6 +62,8 @@ public class ScreenController {
             @ApiResponse(responseCode = "400", description = "Yêu cầu không hợp lệ. Dữ liệu phòng chiếu phim không hợp lệ hoặc bị thiếu."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi tạo phòng chiếu phim.")
     })
+    @PreAuthorize("hasRole('ADMIN')")
+
     public ResponseEntity<?> create(@RequestBody CreateScreenRequest request) {
         try {
             screenService.createScreen(request);
@@ -79,6 +82,7 @@ public class ScreenController {
             @ApiResponse(responseCode = "400", description = "Yêu cầu không hợp lệ. Dữ liệu phòng chiếu phim không hợp lệ hoặc bị thiếu."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi tạo phòng chiếu phim.")
     })
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> update(@RequestBody UpdateScreenRequest request) {
         try {
             Screen updatedScreen = screenService.updateScreen(request);
