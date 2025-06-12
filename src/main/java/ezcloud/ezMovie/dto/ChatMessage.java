@@ -11,4 +11,6 @@ public class ChatMessage {
     private UUID senderId;
     private boolean isAdmin;
     private String senderName;
+    private String senderRole;
+    private String createdAt;
 } 

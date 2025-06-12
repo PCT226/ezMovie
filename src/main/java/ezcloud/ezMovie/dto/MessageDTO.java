@@ -10,5 +10,7 @@ public class MessageDTO {
     private String content;
     private UUID senderId;
     private boolean admin;
+    private String senderName;
+    private String senderRole;
     private LocalDateTime createdAt;
 } 
