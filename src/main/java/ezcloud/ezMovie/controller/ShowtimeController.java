@@ -2,6 +2,7 @@ package ezcloud.ezMovie.controller;
 
 import ezcloud.ezMovie.manage.model.dto.ShowtimeDto;
 import ezcloud.ezMovie.manage.model.payload.CreateShowtimeRequest;
+import ezcloud.ezMovie.manage.model.payload.CreateBulkShowtimeRequest;
 import ezcloud.ezMovie.manage.model.payload.UpdateShowtimeRq;
 import ezcloud.ezMovie.manage.service.ShowtimeService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -129,6 +130,24 @@ public class ShowtimeController {
             return ResponseEntity.notFound().build();
         } catch (Exception ex) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PostMapping("/bulk")
+    @Operation(summary = "Create multiple showtimes in date range", description = "Create showtimes for a date range with specific time slots and days of week")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Tạo nhiều lịch chiếu thành công."),
+            @ApiResponse(responseCode = "400", description = "Yêu cầu không hợp lệ. Dữ liệu không hợp lệ hoặc bị thiếu."),
+            @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi tạo lịch chiếu.")
+    })
+    public ResponseEntity<?> createBulkShowtimes(@RequestBody CreateBulkShowtimeRequest request) {
+        try {
+            List<ShowtimeDto> createdShowtimes = showtimeService.createBulkShowtimes(request);
+            return ResponseEntity.ok(createdShowtimes);
+        } catch (RuntimeException ex) {
+            return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception ex) {
+            return new ResponseEntity<>("Lỗi máy chủ khi tạo lịch chiếu", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

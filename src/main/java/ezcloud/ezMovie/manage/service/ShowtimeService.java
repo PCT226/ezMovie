@@ -8,6 +8,7 @@ import ezcloud.ezMovie.manage.model.enities.Movie;
 import ezcloud.ezMovie.manage.model.enities.Screen;
 import ezcloud.ezMovie.manage.model.enities.Showtime;
 import ezcloud.ezMovie.manage.model.payload.CreateShowtimeRequest;
+import ezcloud.ezMovie.manage.model.payload.CreateBulkShowtimeRequest;
 import ezcloud.ezMovie.manage.model.payload.UpdateShowtimeRq;
 import ezcloud.ezMovie.manage.repository.MovieRepository;
 import ezcloud.ezMovie.manage.repository.ScreenRepository;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -317,5 +319,60 @@ public class ShowtimeService {
         return todayUpcoming;
     }
 
+    public List<ShowtimeDto> createBulkShowtimes(CreateBulkShowtimeRequest request) {
+        Movie movie = movieRepository.findById(request.getMovieId())
+                .orElseThrow(() -> new RuntimeException("Movie not found"));
+        Screen screen = screenRepository.findById(request.getScreenId())
+                .orElseThrow(() -> new RuntimeException("Screen not found"));
+
+        List<Showtime> createdShowtimes = new ArrayList<>();
+        LocalDate currentDate = request.getStartDate();
+
+        while (!currentDate.isAfter(request.getEndDate())) {
+            // Kiểm tra xem ngày hiện tại có trong danh sách ngày được chọn không
+            DayOfWeek dayOfWeek = currentDate.getDayOfWeek();
+            String dayName = dayOfWeek.name();
+            
+            if (request.getDaysOfWeek().contains(dayName)) {
+                // Kiểm tra xung đột thời gian
+                List<Showtime> existingShowtimes = showtimeRepository.findAllByScreenIdAndDate(request.getScreenId(), currentDate);
+                boolean hasConflict = false;
+                
+                for (Showtime existingShowtime : existingShowtimes) {
+                    if (isTimeConflict(existingShowtime, request.getStartTime(), request.getEndTime())) {
+                        hasConflict = true;
+                        break;
+                    }
+                }
+                
+                if (!hasConflict) {
+                    Showtime showtime = new Showtime();
+                    showtime.setDate(currentDate);
+                    showtime.setMovie(movie);
+                    showtime.setScreen(screen);
+                    showtime.setStartTime(request.getStartTime());
+                    showtime.setEndTime(request.getEndTime());
+                    showtime.setCreatedAt(LocalDateTime.now());
+                    showtime.setUpdatedAt(LocalDateTime.now());
+                    
+                    showtime = showtimeRepository.save(showtime);
+                    createdShowtimes.add(showtime);
+                }
+            }
+            
+            currentDate = currentDate.plusDays(1);
+        }
+
+        return createdShowtimes.stream()
+                .map(showtime -> mapper.map(showtime, ShowtimeDto.class))
+                .collect(Collectors.toList());
+    }
+
+    private boolean isTimeConflict(Showtime existingShowtime, LocalTime newStartTime, LocalTime newEndTime) {
+        LocalTime existingStartTime = existingShowtime.getStartTime();
+        LocalTime existingEndTime = existingShowtime.getEndTime();
+
+        return (newStartTime.isBefore(existingEndTime) && newEndTime.isAfter(existingStartTime));
+    }
 
 }
