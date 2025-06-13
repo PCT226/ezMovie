@@ -27,7 +27,7 @@ public class JwtService {
     @Value("${jwt.secret}")
     private String secret;
 
-    private final long EXPIRATION = 100000000000L;
+    private final long EXPIRATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
     private SecretKey getSigningKey() {
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
@@ -35,19 +35,31 @@ public class JwtService {
     }
 
     public String generateToken(UserDetails userDetails) {
-        Map<String, Object> claims = new HashMap<>();
-        if (userDetails instanceof CustomUserDetail) {
-            CustomUserDetail user = (CustomUserDetail) userDetails;
-            claims.put("id", user.getUser().getId());
-            claims.put("email", user.getUser().getEmail());
-            claims.put("roles", user.getUser().getRole());
-        } else if (userDetails instanceof AdminUserDetails) {
-            AdminUserDetails admin = (AdminUserDetails) userDetails;
-            claims.put("id", admin.getAdmin().getId());
-            claims.put("email", admin.getAdmin().getEmail());
-            claims.put("roles", admin.getAdmin().getRole());
+        try {
+            logger.debug("Generating token for user: {}", userDetails.getUsername());
+            Map<String, Object> claims = new HashMap<>();
+            if (userDetails instanceof CustomUserDetail) {
+                CustomUserDetail user = (CustomUserDetail) userDetails;
+                claims.put("id", user.getUser().getId());
+                claims.put("email", user.getUser().getEmail());
+                claims.put("roles", user.getUser().getRole());
+                logger.debug("Generated claims for user: id={}, email={}, roles={}", 
+                    user.getUser().getId(), user.getUser().getEmail(), user.getUser().getRole());
+            } else if (userDetails instanceof AdminUserDetails) {
+                AdminUserDetails admin = (AdminUserDetails) userDetails;
+                claims.put("id", admin.getAdmin().getId());
+                claims.put("email", admin.getAdmin().getEmail());
+                claims.put("roles", admin.getAdmin().getRole());
+                logger.debug("Generated claims for admin: id={}, email={}, roles={}", 
+                    admin.getAdmin().getId(), admin.getAdmin().getEmail(), admin.getAdmin().getRole());
+            }
+            String token = createToken(claims, userDetails.getUsername());
+            logger.debug("Successfully generated token for user: {}", userDetails.getUsername());
+            return token;
+        } catch (Exception e) {
+            logger.error("Error generating token for user {}: {}", userDetails.getUsername(), e.getMessage());
+            throw e;
         }
-        return createToken(claims, userDetails.getUsername());
     }
 
     public String getEmailFromToken(String token) {
@@ -58,6 +70,18 @@ public class JwtService {
             return email;
         } catch (Exception e) {
             logger.error("Error extracting email from token: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    public String getUserIdFromToken(String token) {
+        try {
+            Claims claims = getAllClaimsFromToken(token);
+            String userId = claims.get("id", String.class);
+            logger.debug("Extracted user ID from token: {}", userId);
+            return userId;
+        } catch (Exception e) {
+            logger.error("Error extracting user ID from token: {}", e.getMessage());
             return null;
         }
     }
@@ -76,13 +100,26 @@ public class JwtService {
 
     public boolean validateToken(String token, UserDetails userDetails) {
         try {
+            logger.debug("Validating token for user: {}", userDetails.getUsername());
             Claims claims = getAllClaimsFromToken(token);
+            
+            // Log all claims for debugging
+            logger.debug("Token claims: {}", claims);
+            
             String email = claims.get("email", String.class);
-            boolean isValid = email.equals(userDetails.getUsername()) && !isTokenExpired(claims);
-            logger.debug("Token validation result for {}: {}", email, isValid);
+            String username = userDetails.getUsername();
+            
+            logger.debug("Token validation comparison: token email='{}', userDetails username='{}'", email, username);
+            
+            boolean emailMatch = email.equals(username);
+            boolean notExpired = !isTokenExpired(claims);
+            boolean isValid = emailMatch && notExpired;
+            
+            logger.debug("Token validation details for {}: email match: {} ({} == {}), not expired: {}, final result: {}", 
+                email, emailMatch, email, username, notExpired, isValid);
             return isValid;
         } catch (Exception e) {
-            logger.error("Error validating token: {}", e.getMessage());
+            logger.error("Error validating token for user {}: {}", userDetails.getUsername(), e.getMessage(), e);
             return false;
         }
     }
@@ -91,7 +128,7 @@ public class JwtService {
         try {
             Date expiration = claims.getExpiration();
             boolean isExpired = expiration.before(new Date());
-            logger.debug("Token expiration check: {}", isExpired);
+            logger.debug("Token expiration check: {} (expires at: {})", isExpired, expiration);
             return isExpired;
         } catch (Exception e) {
             logger.error("Error checking token expiration: {}", e.getMessage());
@@ -106,7 +143,7 @@ public class JwtService {
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
-            logger.debug("Successfully parsed JWT claims");
+            logger.debug("Successfully parsed JWT claims for token");
             return claims;
         } catch (Exception e) {
             logger.error("Error parsing JWT claims: {}", e.getMessage());

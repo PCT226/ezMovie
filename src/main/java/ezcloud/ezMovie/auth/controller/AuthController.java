@@ -19,8 +19,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -157,5 +162,26 @@ public class AuthController {
         return ResponseEntity.ok("Password changed successfully");
     }
 
+    @GetMapping("/test")
+    @Operation(summary = "Test authentication", description = "Test if the current token is valid")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Token is valid"),
+        @ApiResponse(responseCode = "401", description = "Token is invalid")
+    })
+    public ResponseEntity<Map<String, Object>> testAuth() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Map<String, Object> response = new HashMap<>();
+        
+        if (authentication != null && authentication.isAuthenticated()) {
+            response.put("authenticated", true);
+            response.put("principal", authentication.getPrincipal().getClass().getSimpleName());
+            response.put("authorities", authentication.getAuthorities());
+            return ResponseEntity.ok(response);
+        } else {
+            response.put("authenticated", false);
+            response.put("message", "No valid authentication found");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
+    }
 
 }

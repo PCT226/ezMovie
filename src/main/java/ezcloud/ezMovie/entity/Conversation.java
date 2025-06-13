@@ -23,6 +23,7 @@ public class Conversation {
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private User user;
 
     @Column(name = "created_at")
@@ -32,6 +33,7 @@ public class Conversation {
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<Message> messages;
 
     @PrePersist
