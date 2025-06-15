@@ -27,7 +27,6 @@ public class MovieController {
     private MovieService movieService;
 
     @GetMapping(value = "/")
-    @RateLimit( ipCapacity = 100, ipRefillDuration = 60, ipRefillTokens = 5, systemCapacity = 100, systemRefillDuration = 60, systemRefillTokens = 50)
     @Operation(summary = "Get all movies", description = "Retrieve a list of all movies")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Danh sách phim được lấy thành công."),
