@@ -15,8 +15,11 @@ public class VNPAYConfig {
     public static String vnp_HashSecret = "R7QQQIQPPFTIUJ44PB10HS0WNY1ZRU7K";
     public static String vnp_apiUrl = "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction";
 
-
     public static String hashAllFields(Map fields) {
+        // Remove vnp_SecureHash if exists
+        fields.remove("vnp_SecureHash");
+        fields.remove("vnp_SecureHashType");
+        
         List fieldNames = new ArrayList(fields.keySet());
         Collections.sort(fieldNames);
         StringBuilder sb = new StringBuilder();
@@ -27,24 +30,34 @@ public class VNPAYConfig {
             if ((fieldValue != null) && (fieldValue.length() > 0)) {
                 sb.append(fieldName);
                 sb.append("=");
-                sb.append(fieldValue);
+                try {
+                    // URL encode the field value
+                    String encodedValue = URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString());
+                    // Replace special characters according to VNPAY requirements
+                    encodedValue = encodedValue.replaceAll("\\+", "%20");
+                    sb.append(encodedValue);
+                } catch (Exception e) {
+                    sb.append(fieldValue);
+                }
             }
             if (itr.hasNext()) {
                 sb.append("&");
             }
         }
-        return hmacSHA512(vnp_HashSecret, sb.toString());
+        String hashData = sb.toString();
+        System.out.println("Hash data: " + hashData); // Debug log
+        String vnp_SecureHash = hmacSHA512(vnp_HashSecret, hashData);
+        System.out.println("Secure hash: " + vnp_SecureHash); // Debug log
+        return vnp_SecureHash;
     }
-
 
     public static String hmacSHA512(final String key, final String data) {
         try {
-
             if (key == null || data == null) {
                 throw new NullPointerException();
             }
             final Mac hmac512 = Mac.getInstance("HmacSHA512");
-            byte[] hmacKeyBytes = key.getBytes();
+            byte[] hmacKeyBytes = key.getBytes(StandardCharsets.UTF_8);
             final SecretKeySpec secretKey = new SecretKeySpec(hmacKeyBytes, "HmacSHA512");
             hmac512.init(secretKey);
             byte[] dataBytes = data.getBytes(StandardCharsets.UTF_8);
@@ -54,8 +67,8 @@ public class VNPAYConfig {
                 sb.append(String.format("%02x", b & 0xff));
             }
             return sb.toString();
-
         } catch (Exception ex) {
+            System.out.println("Error generating HMAC: " + ex.getMessage()); // Debug log
             return "";
         }
     }
