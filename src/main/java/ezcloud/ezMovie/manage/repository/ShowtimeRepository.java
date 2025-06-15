@@ -31,6 +31,9 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, Integer> {
 
     List<Showtime> findAllByScreenIdAndDate(Integer screen_id, LocalDate date);
 
+    // Get non-deleted showtimes for a specific screen and date
+    List<Showtime> findAllByScreenIdAndDateAndIsDeletedFalse(Integer screen_id, LocalDate date);
+
     @Query("SELECT s FROM Showtime s " +
             "WHERE s.screen.cinema.id = :cinemaId " +
             "AND s.date = :date " +
@@ -45,5 +48,8 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, Integer> {
             Integer cinemaId, LocalDate date, LocalTime endTime);
 
     List<Showtime> findByScreen_Cinema_IdAndDateAfterAndIsDeletedFalse(Integer movieId, LocalDate date);
+
+    // Get all non-deleted showtimes for admin
+    List<Showtime> findByIsDeletedFalse();
 
 }

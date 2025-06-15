@@ -43,20 +43,27 @@ public class ShowtimeService {
         LocalDate nowDate = LocalDate.now();
         LocalTime nowTime = LocalTime.now();
 
+        System.out.println("Getting upcoming showtimes for date: " + nowDate + ", time: " + nowTime);
+
         List<Showtime> todayUpcoming = showtimeRepository.findByDateAndStartTimeAfterAndIsDeletedFalse(nowDate, nowTime);
         List<Showtime> futureShowtimes = showtimeRepository.findByDateAfterAndIsDeletedFalse(nowDate);
+
+        System.out.println("Today upcoming showtimes: " + todayUpcoming.size());
+        System.out.println("Future showtimes: " + futureShowtimes.size());
 
         List<Showtime> combinedList = new ArrayList<>();
         combinedList.addAll(todayUpcoming);
         combinedList.addAll(futureShowtimes);
 
+        System.out.println("Total combined showtimes: " + combinedList.size());
+
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), combinedList.size());
 
         List<Showtime> pagedContent = combinedList.subList(start, end);
-        Page<Showtime> allShowtime = new PageImpl<>(pagedContent, pageable, pagedContent.size());
+        Page<Showtime> allShowtime = new PageImpl<>(pagedContent, pageable, combinedList.size());
 
-        return allShowtime.stream().map(showtime -> {
+        List<ShowtimeDto> result = allShowtime.stream().map(showtime -> {
             ShowtimeDto showtimeDto = mapper.map(showtime, ShowtimeDto.class);
             if (showtime.getMovie() != null) {
                 MovieInfo movieInfo = mapper.map(showtime.getMovie(), MovieInfo.class);
@@ -77,8 +84,10 @@ public class ShowtimeService {
                 showtimeDto.setScreen(null);
             }
             return showtimeDto;
-
         }).collect(Collectors.toList());
+
+        System.out.println("Returning " + result.size() + " showtimes to user");
+        return result;
     }
 
     public List<ShowtimeDto> getUpcomingShowtimesByCinemaId(Pageable pageable) {
@@ -96,7 +105,7 @@ public class ShowtimeService {
         int end = Math.min(start + pageable.getPageSize(), combinedList.size());
 
         List<Showtime> pagedContent = combinedList.subList(start, end);
-        Page<Showtime> allShowtime = new PageImpl<>(pagedContent, pageable, pagedContent.size());
+        Page<Showtime> allShowtime = new PageImpl<>(pagedContent, pageable, combinedList.size());
 
         return allShowtime.stream().map(showtime -> {
             ShowtimeDto showtimeDto = mapper.map(showtime, ShowtimeDto.class);
@@ -231,7 +240,7 @@ public class ShowtimeService {
         Screen screen = screenRepository.findById(request.getScreenId())
                 .orElseThrow(() -> new RuntimeException("Screen not found"));
 
-        List<Showtime> existingShowtimes = showtimeRepository.findAllByScreenIdAndDate(request.getScreenId(), request.getDate());
+        List<Showtime> existingShowtimes = showtimeRepository.findAllByScreenIdAndDateAndIsDeletedFalse(request.getScreenId(), request.getDate());
         for (Showtime existingShowtime : existingShowtimes) {
             if (isTimeConflict(existingShowtime, request)) {
                 throw new RuntimeException("Showtime conflict detected");
@@ -246,6 +255,7 @@ public class ShowtimeService {
         showtime.setEndTime(request.getEndTime());
         showtime.setCreatedAt(LocalDateTime.now());
         showtime.setUpdatedAt(LocalDateTime.now());
+        showtime.setDeleted(false); // Explicitly set to false
 
         showtime = showtimeRepository.save(showtime);
         return mapper.map(showtime, ShowtimeDto.class);
@@ -325,6 +335,11 @@ public class ShowtimeService {
         Screen screen = screenRepository.findById(request.getScreenId())
                 .orElseThrow(() -> new RuntimeException("Screen not found"));
 
+        System.out.println("Creating bulk showtimes for movie: " + movie.getTitle() + ", screen: " + screen.getScreenNumber());
+        System.out.println("Date range: " + request.getStartDate() + " to " + request.getEndDate());
+        System.out.println("Time: " + request.getStartTime() + " to " + request.getEndTime());
+        System.out.println("Days of week: " + request.getDaysOfWeek());
+
         List<Showtime> createdShowtimes = new ArrayList<>();
         LocalDate currentDate = request.getStartDate();
 
@@ -334,13 +349,18 @@ public class ShowtimeService {
             String dayName = dayOfWeek.name();
             
             if (request.getDaysOfWeek().contains(dayName)) {
-                // Kiểm tra xung đột thời gian
-                List<Showtime> existingShowtimes = showtimeRepository.findAllByScreenIdAndDate(request.getScreenId(), currentDate);
+                System.out.println("Processing date: " + currentDate + " (Day: " + dayName + ")");
+                
+                // Kiểm tra xung đột thời gian với các showtime chưa bị xóa
+                List<Showtime> existingShowtimes = showtimeRepository.findAllByScreenIdAndDateAndIsDeletedFalse(request.getScreenId(), currentDate);
+                System.out.println("Found " + existingShowtimes.size() + " existing showtimes for this date");
+                
                 boolean hasConflict = false;
                 
                 for (Showtime existingShowtime : existingShowtimes) {
                     if (isTimeConflict(existingShowtime, request.getStartTime(), request.getEndTime())) {
                         hasConflict = true;
+                        System.out.println("Time conflict detected with existing showtime: " + existingShowtime.getStartTime() + " - " + existingShowtime.getEndTime());
                         break;
                     }
                 }
@@ -354,14 +374,22 @@ public class ShowtimeService {
                     showtime.setEndTime(request.getEndTime());
                     showtime.setCreatedAt(LocalDateTime.now());
                     showtime.setUpdatedAt(LocalDateTime.now());
+                    showtime.setDeleted(false); // Explicitly set to false
                     
                     showtime = showtimeRepository.save(showtime);
                     createdShowtimes.add(showtime);
+                    System.out.println("Created showtime for " + currentDate + " with ID: " + showtime.getId());
+                } else {
+                    System.out.println("Skipped " + currentDate + " due to time conflict");
                 }
+            } else {
+                System.out.println("Skipped " + currentDate + " (Day: " + dayName + ") - not in selected days");
             }
             
             currentDate = currentDate.plusDays(1);
         }
+
+        System.out.println("Total showtimes created: " + createdShowtimes.size());
 
         return createdShowtimes.stream()
                 .map(showtime -> mapper.map(showtime, ShowtimeDto.class))
@@ -373,6 +401,39 @@ public class ShowtimeService {
         LocalTime existingEndTime = existingShowtime.getEndTime();
 
         return (newStartTime.isBefore(existingEndTime) && newEndTime.isAfter(existingStartTime));
+    }
+
+    public List<ShowtimeDto> getAllShowtimesForAdmin(Pageable pageable) {
+        List<Showtime> allShowtimes = showtimeRepository.findByIsDeletedFalse();
+        
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), allShowtimes.size());
+        
+        List<Showtime> pagedContent = allShowtimes.subList(start, end);
+        Page<Showtime> allShowtime = new PageImpl<>(pagedContent, pageable, allShowtimes.size());
+
+        return allShowtime.stream().map(showtime -> {
+            ShowtimeDto showtimeDto = mapper.map(showtime, ShowtimeDto.class);
+            if (showtime.getMovie() != null) {
+                MovieInfo movieInfo = mapper.map(showtime.getMovie(), MovieInfo.class);
+                showtimeDto.setMovieInfo(movieInfo);
+            } else {
+                showtimeDto.setMovieInfo(null);
+            }
+            if (showtime.getScreen() != null) {
+                ScreenDto screenDto = mapper.map(showtime.getScreen(), ScreenDto.class);
+                if (showtime.getScreen().getCinema() != null) {
+                    CinemaDto cinemaDTO = mapper.map(showtime.getScreen().getCinema(), CinemaDto.class);
+                    screenDto.setCinemaDto(cinemaDTO);
+                } else {
+                    screenDto.setCinemaDto(null);
+                }
+                showtimeDto.setScreen(screenDto);
+            } else {
+                showtimeDto.setScreen(null);
+            }
+            return showtimeDto;
+        }).collect(Collectors.toList());
     }
 
 }

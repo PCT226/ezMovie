@@ -150,4 +150,21 @@ public class ShowtimeController {
             return new ResponseEntity<>("Lỗi máy chủ khi tạo lịch chiếu", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    @GetMapping("/admin/all")
+    @Operation(summary = "Get all showtimes for admin", description = "Retrieve all showtimes for admin management (including past showtimes)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "All showtimes retrieved successfully."),
+            @ApiResponse(responseCode = "500", description = "Server error when retrieving showtimes.")
+    })
+    public ResponseEntity<List<ShowtimeDto>> getAllForAdmin(
+            @Parameter(description = "Page number for pagination", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+
+            @Parameter(description = "Page size", example = "10")
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(showtimeService.getAllShowtimesForAdmin(pageable));
+    }
 }
