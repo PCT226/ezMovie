@@ -4,14 +4,15 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class VNPAYConfig {
     public static String vnp_PayUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
     public static String vnp_Returnurl = "https://ezmovie-iota.vercel.app/booking/";
-    public static String vnp_TmnCode = "DSDVRDUB";
-    public static String vnp_HashSecret = "ZQZYPSBOO4IB26MAHAWT0LQZ4ZS6CSTR";
+    public static String vnp_TmnCode = "0BWKW86F";
+    public static String vnp_HashSecret = "R7QQQIQPPFTIUJ44PB10HS0WNY1ZRU7K";
     public static String vnp_apiUrl = "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction";
 
 
@@ -34,6 +35,7 @@ public class VNPAYConfig {
         }
         return hmacSHA512(vnp_HashSecret, sb.toString());
     }
+
 
     public static String hmacSHA512(final String key, final String data) {
         try {
