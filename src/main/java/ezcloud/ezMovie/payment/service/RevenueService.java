@@ -7,6 +7,11 @@ import ezcloud.ezMovie.manage.model.enities.Cinema;
 import ezcloud.ezMovie.manage.model.enities.Movie;
 import ezcloud.ezMovie.manage.model.enities.Revenue;
 import ezcloud.ezMovie.manage.repository.RevenueRepository;
+import ezcloud.ezMovie.booking.repository.TicketRepository;
+import ezcloud.ezMovie.auth.repository.UserRepository;
+import ezcloud.ezMovie.manage.repository.MovieRepository;
+import ezcloud.ezMovie.manage.repository.ShowtimeRepository;
+import ezcloud.ezMovie.manage.model.dto.RecentTicketDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +26,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class RevenueService {
     private final RevenueRepository revenueRepository;
+    private final TicketRepository ticketRepository;
+    private final UserRepository userRepository;
+    private final MovieRepository movieRepository;
+    private final ShowtimeRepository showtimeRepository;
 
     @Transactional
     public void addRevenue(Cinema cinema, Movie movie, BigDecimal amount) {
@@ -125,6 +134,24 @@ public class RevenueService {
         }
         response.setRevenueByCinema(revenueByCinema);
         response.setTopCinemas(topCinemas);
+
+        // Tổng quan
+        response.setTotalMovies((int) movieRepository.count());
+        response.setTotalShowtimes((int) showtimeRepository.count());
+        response.setTotalTickets((int) ticketRepository.count());
+        response.setTotalUsers((int) userRepository.count());
+
+        // Recent tickets (10 vé mới nhất)
+        var recentTickets = ticketRepository.findTop10ByOrderByBookingTimeDesc();
+        List<RecentTicketDTO> recentTicketDTOs = new ArrayList<>();
+        for (var ticket : recentTickets) {
+            RecentTicketDTO dto = new RecentTicketDTO();
+            dto.setMovieTitle(ticket.getShowtime() != null && ticket.getShowtime().getMovie() != null ? ticket.getShowtime().getMovie().getTitle() : "");
+            dto.setShowtime(ticket.getBookingTime() != null ? ticket.getBookingTime().toString() : "");
+            dto.setStatus(ticket.getPaymentStatus());
+            recentTicketDTOs.add(dto);
+        }
+        response.setRecentTickets(recentTicketDTOs);
 
         return response;
     }

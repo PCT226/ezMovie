@@ -31,11 +31,16 @@ import org.springframework.data.domain.PageRequest;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 @Service
 public class TicketService {
@@ -469,6 +474,9 @@ public class TicketService {
         ticket.setUpdatedAt(LocalDateTime.now());
         ticketRepository.save(ticket);
 
+        // Tạo file vé giấy (txt)
+        generatePaperTicket(ticket);
+
         // Chuyển đổi và trả về DTO
         TicketDto ticketDto = mapper.map(ticket, TicketDto.class);
         if (ticket.getUser() != null) {
@@ -501,6 +509,94 @@ public class TicketService {
         ticketDto.setSeats(seatNumbers);
 
         return ticketDto;
+    }
+
+    private void generatePaperTicket(Ticket ticket) {
+        try {
+            // Tạo thư mục tickets nếu chưa tồn tại
+            String directory = "tickets";
+            if (!Files.exists(Paths.get(directory))) {
+                Files.createDirectories(Paths.get(directory));
+            }
+
+            // Tạo tên file
+            String fileName = String.format("%s/ticket_%s_%s.txt", 
+                directory, 
+                ticket.getTicketCode(), 
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")));
+
+            // Lấy thông tin ghế
+            List<BookedSeat> bookedSeats = bookedSeatRepository.findBookedSeatsByTicket_Id(ticket.getId());
+            List<String> seatNumbers = bookedSeats.stream()
+                .map(bookedSeat -> bookedSeat.getSeat().getSeatNumber())
+                .collect(Collectors.toList());
+
+            // Tạo nội dung vé
+            StringBuilder content = new StringBuilder();
+            content.append("=".repeat(50)).append("\n");
+            content.append("           EZ MOVIE - MOVIE TICKET\n");
+            content.append("=".repeat(50)).append("\n\n");
+            
+            content.append("TICKET CODE: ").append(ticket.getTicketCode()).append("\n");
+            content.append("VERIFICATION TIME: ").append(LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))).append("\n\n");
+            
+            content.append("MOVIE INFORMATION:\n");
+            content.append("-".repeat(30)).append("\n");
+            content.append("Title: ").append(ticket.getShowtime().getMovie().getTitle()).append("\n");
+            content.append("Duration: ").append(ticket.getShowtime().getMovie().getDuration()).append(" minutes\n");
+            content.append("Genre: ").append(ticket.getShowtime().getMovie().getGenre()).append("\n");
+            content.append("Director: ").append(ticket.getShowtime().getMovie().getDirector()).append("\n\n");
+            
+            content.append("SHOWTIME INFORMATION:\n");
+            content.append("-".repeat(30)).append("\n");
+            content.append("Date: ").append(ticket.getShowtime().getDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))).append("\n");
+            content.append("Time: ").append(ticket.getShowtime().getStartTime()).append(" - ").append(ticket.getShowtime().getEndTime()).append("\n\n");
+            
+            content.append("CINEMA INFORMATION:\n");
+            content.append("-".repeat(30)).append("\n");
+            content.append("Cinema: ").append(ticket.getShowtime().getScreen().getCinema().getName()).append("\n");
+            content.append("Address: ").append(ticket.getShowtime().getScreen().getCinema().getLocation()).append("\n");
+            content.append("Screen: ").append(ticket.getShowtime().getScreen().getScreenNumber()).append("\n\n");
+            
+            content.append("SEAT INFORMATION:\n");
+            content.append("-".repeat(30)).append("\n");
+            content.append("Seats: ").append(String.join(", ", seatNumbers)).append("\n");
+            content.append("Number of seats: ").append(seatNumbers.size()).append("\n\n");
+            
+            content.append("CUSTOMER INFORMATION:\n");
+            content.append("-".repeat(30)).append("\n");
+            content.append("Name: ").append(ticket.getUser().getUsername()).append("\n");
+            content.append("Email: ").append(ticket.getUser().getEmail()).append("\n");
+            content.append("Phone: ").append(ticket.getUser().getPhoneNumber()).append("\n\n");
+            
+            content.append("PAYMENT INFORMATION:\n");
+            content.append("-".repeat(30)).append("\n");
+            content.append("Booking time: ").append(ticket.getBookingTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))).append("\n");
+            content.append("Total amount: ").append(ticket.getTotalPrice()).append(" VND\n");
+            content.append("Payment status: ").append(ticket.getPaymentStatus()).append("\n");
+            content.append("Ticket status: USED\n\n");
+            
+            content.append("IMPORTANT NOTES:\n");
+            content.append("-".repeat(30)).append("\n");
+            content.append("1. Please arrive 15 minutes before the showtime\n");
+            content.append("2. Present this ticket at the entrance\n");
+            content.append("3. No refunds or exchanges\n");
+            content.append("4. Food and drinks are not allowed in the theater\n");
+            content.append("5. Please turn off your phone during the movie\n\n");
+            
+            content.append("=".repeat(50)).append("\n");
+            content.append("           THANK YOU FOR CHOOSING EZ MOVIE!\n");
+            content.append("=".repeat(50)).append("\n");
+
+            // Ghi file
+            try (FileWriter writer = new FileWriter(fileName)) {
+                writer.write(content.toString());
+            }
+
+            System.out.println("Paper ticket generated: " + fileName);
+        } catch (IOException e) {
+            System.err.println("Error generating paper ticket: " + e.getMessage());
+        }
     }
 }
 

@@ -18,10 +18,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
 
@@ -160,6 +164,35 @@ public class TicketController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new Response<>(1, "An unexpected error occurred"));
+        }
+    }
+
+    @GetMapping("/download-ticket/{ticketCode}")
+    @Operation(summary = "Download paper ticket", description = "Download paper ticket as txt file")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Paper ticket downloaded successfully"),
+        @ApiResponse(responseCode = "404", description = "Ticket not found or file not exists")
+    })
+    public ResponseEntity<byte[]> downloadPaperTicket(@PathVariable String ticketCode) {
+        try {
+            // Tìm file vé giấy trong thư mục tickets
+            String directory = "tickets";
+            String fileName = Files.list(Paths.get(directory))
+                .filter(path -> path.getFileName().toString().startsWith("ticket_" + ticketCode + "_"))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Paper ticket file not found"))
+                .toString();
+
+            byte[] fileContent = Files.readAllBytes(Paths.get(fileName));
+            
+            String downloadFileName = "ticket_" + ticketCode + ".txt";
+            
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + downloadFileName + "\"")
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(fileContent);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
         }
     }
 }

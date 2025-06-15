@@ -15,6 +15,13 @@ public class DashboardRevenueResponse {
     private Map<String, BigDecimal> revenueByCinema; // cinemaName -> amount
     private List<MovieRevenueDTO> topMovies;
     private List<CinemaRevenueDTO> topCinemas;
+
+    // Thêm các trường tổng quan và recent tickets
+    private int totalMovies;
+    private int totalShowtimes;
+    private int totalTickets;
+    private int totalUsers;
+    private List<RecentTicketDTO> recentTickets;
 }
 
 

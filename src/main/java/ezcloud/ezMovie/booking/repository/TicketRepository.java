@@ -23,4 +23,6 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
 
     @Query("SELECT t.showtime.id FROM Ticket t WHERE t.id = :ticketId")
     Integer getShowtimeIdByTicketId(@Param("ticketId") UUID ticketId);
+
+    List<Ticket> findTop10ByOrderByBookingTimeDesc();
 }
