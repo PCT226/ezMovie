@@ -142,8 +142,21 @@ public class SeatService {
         LocalDateTime endTime = LocalDateTime.of(showtime.getDate(), showtime.getEndTime());
         long ttlSeconds = Duration.between(now, endTime).getSeconds();
 
-        // Cập nhật Redis với danh sách ghế mới
-        redisTemplate.opsForValue().set("listSeat::" + showtime.getScreen().getId(), seats);
-        redisTemplate.expire("listSeat::" + showtimeId, ttlSeconds, TimeUnit.SECONDS);
+        // Cập nhật Redis với danh sách ghế mới - sử dụng cùng key cho set và expire
+        String redisKey = "listSeat::" + showtimeId;
+        
+        System.out.println("Updating Redis cache:");
+        System.out.println("Key: " + redisKey);
+        System.out.println("Seats count: " + seats.size());
+        System.out.println("TTL seconds: " + ttlSeconds);
+        
+        redisTemplate.opsForValue().set(redisKey, seats);
+        redisTemplate.expire(redisKey, ttlSeconds, TimeUnit.SECONDS);
+        
+        System.out.println("Redis cache updated successfully for showtime: " + showtimeId);
+    }
+
+    public RedisTemplate<String, Object> getRedisTemplate() {
+        return redisTemplate;
     }
 }

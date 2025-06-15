@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping(value = "seat")
@@ -127,10 +128,46 @@ public class SeatController {
     })
     public ResponseEntity<?> updateRedis(@RequestBody List<SeatDto> seats, @RequestParam Integer showtimeId) {
         try {
+            System.out.println("Received Redis update request:");
+            System.out.println("Showtime ID: " + showtimeId);
+            System.out.println("Seats count: " + seats.size());
+            System.out.println("Seats data: " + seats);
+            
             seatService.updateRedisCache(seats, showtimeId);
+            
+            System.out.println("Redis update completed successfully for showtime: " + showtimeId);
             return ResponseEntity.ok("Cập nhật Redis thành công");
         } catch (Exception ex) {
+            System.err.println("Error updating Redis: " + ex.getMessage());
+            ex.printStackTrace();
             return new ResponseEntity<>("Lỗi khi cập nhật Redis: " + ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/check-redis/{showtimeId}")
+    @Operation(summary = "Check Redis cache", description = "Check Redis cache for a specific showtime")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Redis cache status retrieved successfully."),
+            @ApiResponse(responseCode = "500", description = "Error checking Redis cache.")
+    })
+    public ResponseEntity<?> checkRedis(@PathVariable Integer showtimeId) {
+        try {
+            String redisKey = "listSeat::" + showtimeId;
+            Object cachedData = seatService.getRedisTemplate().opsForValue().get(redisKey);
+            
+            System.out.println("Checking Redis cache:");
+            System.out.println("Key: " + redisKey);
+            System.out.println("Cached data: " + cachedData);
+            
+            return ResponseEntity.ok(Map.of(
+                "key", redisKey,
+                "exists", cachedData != null,
+                "data", cachedData
+            ));
+        } catch (Exception ex) {
+            System.err.println("Error checking Redis: " + ex.getMessage());
+            ex.printStackTrace();
+            return new ResponseEntity<>("Lỗi khi kiểm tra Redis: " + ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }
