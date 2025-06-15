@@ -24,6 +24,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -39,9 +40,15 @@ public class ShowtimeService {
     @Autowired
     private ModelMapper mapper;
 
+    private LocalDateTime getCurrentTimeInHCM() {
+        ZoneId hcmZone = ZoneId.of("Asia/Ho_Chi_Minh");
+        return LocalDateTime.now(hcmZone);
+    }
+
     public List<ShowtimeDto> getUpcomingShowtimes(Pageable pageable) {
-        LocalDate nowDate = LocalDate.now();
-        LocalTime nowTime = LocalTime.now();
+        LocalDateTime now = getCurrentTimeInHCM();
+        LocalDate nowDate = now.toLocalDate();
+        LocalTime nowTime = now.toLocalTime();
 
         System.out.println("Getting upcoming showtimes for date: " + nowDate + ", time: " + nowTime);
 
@@ -91,8 +98,9 @@ public class ShowtimeService {
     }
 
     public List<ShowtimeDto> getUpcomingShowtimesByCinemaId(Pageable pageable) {
-        LocalDate nowDate = LocalDate.now();
-        LocalTime nowTime = LocalTime.now();
+        LocalDateTime now = getCurrentTimeInHCM();
+        LocalDate nowDate = now.toLocalDate();
+        LocalTime nowTime = now.toLocalTime();
 
         List<Showtime> todayUpcoming = showtimeRepository.findByDateAndStartTimeAfterAndIsDeletedFalse(nowDate, nowTime);
         List<Showtime> futureShowtimes = showtimeRepository.findByDateAfterAndIsDeletedFalse(nowDate);
@@ -133,8 +141,9 @@ public class ShowtimeService {
     }
 
     public List<ShowtimeDto> getUpcomingShowtimesForMovie(Integer movieId, Integer cinemaId, LocalDate date, Pageable pageable) {
-        LocalDate nowDate = LocalDate.now();
-        LocalTime nowTime = LocalTime.now();
+        LocalDateTime now = getCurrentTimeInHCM();
+        LocalDate nowDate = now.toLocalDate();
+        LocalTime nowTime = now.toLocalTime();
 
         // Lấy danh sách showtime hôm nay và tương lai
         List<Showtime> todayUpcoming = showtimeRepository.findByMovieIdAndDateAndStartTimeAfterAndIsDeletedFalse(movieId, nowDate, nowTime);
@@ -194,8 +203,9 @@ public class ShowtimeService {
     }
 
     public List<ShowtimeDto> getUpcomingAndOngoingShowtimes(Integer cinemaId) {
-        LocalDate nowDate = LocalDate.now();
-        LocalTime nowTime = LocalTime.now();
+        LocalDateTime now = getCurrentTimeInHCM();
+        LocalDate nowDate = now.toLocalDate();
+        LocalTime nowTime = now.toLocalTime();
 
         // Lấy danh sách showtime hôm nay (đang diễn ra hoặc chưa bắt đầu)
         List<Showtime> todayShowtimes = showtimeRepository.findByScreen_Cinema_IdAndDateAndStartTimeAfterAndIsDeletedFalse(cinemaId, nowDate, nowTime);
