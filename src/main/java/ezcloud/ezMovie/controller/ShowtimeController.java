@@ -34,15 +34,8 @@ public class ShowtimeController {
             @ApiResponse(responseCode = "200", description = "Danh sách lịch chiếu được lấy thành công."),
             @ApiResponse(responseCode = "500", description = "Lỗi máy chủ khi lấy danh sách lịch chiếu phim.")
     })
-    public ResponseEntity<List<ShowtimeDto>> getAll(
-            @Parameter(description = "Số trang để phân trang", example = "0")
-            @RequestParam(defaultValue = "0") int page,
-
-            @Parameter(description = "Kích thước mỗi trang", example = "10")
-            @RequestParam(defaultValue = "10") int size) {
-
-        Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(showtimeService.getUpcomingShowtimes(pageable));
+    public ResponseEntity<List<ShowtimeDto>> getAll() {
+        return ResponseEntity.ok(showtimeService.getUpcomingShowtimes());
     }
 
     @GetMapping("/findShowtime")

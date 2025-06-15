@@ -45,7 +45,7 @@ public class ShowtimeService {
         return LocalDateTime.now(hcmZone);
     }
 
-    public List<ShowtimeDto> getUpcomingShowtimes(Pageable pageable) {
+    public List<ShowtimeDto> getUpcomingShowtimes() {
         LocalDateTime now = getCurrentTimeInHCM();
         LocalDate nowDate = now.toLocalDate();
         LocalTime nowTime = now.toLocalTime();
@@ -64,13 +64,7 @@ public class ShowtimeService {
 
         System.out.println("Total combined showtimes: " + combinedList.size());
 
-        int start = (int) pageable.getOffset();
-        int end = Math.min(start + pageable.getPageSize(), combinedList.size());
-
-        List<Showtime> pagedContent = combinedList.subList(start, end);
-        Page<Showtime> allShowtime = new PageImpl<>(pagedContent, pageable, combinedList.size());
-
-        List<ShowtimeDto> result = allShowtime.stream().map(showtime -> {
+        List<ShowtimeDto> result = combinedList.stream().map(showtime -> {
             ShowtimeDto showtimeDto = mapper.map(showtime, ShowtimeDto.class);
             if (showtime.getMovie() != null) {
                 MovieInfo movieInfo = mapper.map(showtime.getMovie(), MovieInfo.class);
